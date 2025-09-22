@@ -6,6 +6,19 @@ import { BLEManager } from './ble-manager'
 
 const isProd = process.env.NODE_ENV === 'production'
 
+// Handle N-API callback exceptions and unhandled rejections
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error)
+  // Don't exit the process for N-API callback exceptions as they're often recoverable
+  if (!error.message?.includes('N-API callback exception')) {
+    process.exit(1)
+  }
+})
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason)
+})
+
 if (isProd) {
   serve({ directory: 'app' })
 } else {

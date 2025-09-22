@@ -31,47 +31,71 @@ export class BLEManager extends EventEmitter {
 
   private setupNobleListeners() {
     noble.on('stateChange', (state) => {
-      console.log('BLE state changed:', state)
-      this.emit('stateChange', state)
+      try {
+        console.log('BLE state changed:', state)
+        this.emit('stateChange', state)
 
-      if (state === 'poweredOn') {
-        console.log('BLE is powered on and ready')
-      } else {
-        console.log('BLE is not available:', state)
-        if (this.isScanning) {
-          this.stopScan()
+        if (state === 'poweredOn') {
+          console.log('BLE is powered on and ready')
+        } else {
+          console.log('BLE is not available:', state)
+          if (this.isScanning) {
+            this.stopScan().catch(err => console.error('Failed to stop scan:', err))
+          }
         }
+      } catch (error) {
+        console.error('Error in stateChange handler:', error)
       }
     })
 
     noble.on('discover', (peripheral) => {
-      // Store the peripheral for later connection
-      this.discoveredPeripherals.set(peripheral.id, peripheral)
+      try {
+        // Store the peripheral for later connection
+        this.discoveredPeripherals.set(peripheral.id, peripheral)
 
-      const name = peripheral.advertisement.localName;
-      if (!name.startsWith("KOABP-")) return null;
+        const name = peripheral.advertisement?.localName;
+        if (!name || !name.startsWith("KOABP-")) return;
 
-      const device: BLEDevice = {
-        id: peripheral.id,
-        name: name || 'Unknown Device',
-        rssi: peripheral.rssi,
-        advertisement: peripheral.advertisement
+        const device: BLEDevice = {
+          id: peripheral.id,
+          name: name || 'Unknown Device',
+          rssi: peripheral.rssi,
+          advertisement: peripheral.advertisement
+        }
+
+        console.log('Discovered device:', device.name, device.id)
+        this.emit('deviceDiscovered', device)
+      } catch (error) {
+        console.error('Error in discover handler:', error)
       }
-
-      console.log('Discovered device:', device.name, device.id)
-      this.emit('deviceDiscovered', device)
     })
 
     noble.on('scanStart', () => {
-      console.log('Scan started')
-      this.isScanning = true
-      this.emit('scanStart')
+      try {
+        console.log('Scan started')
+        this.isScanning = true
+        this.emit('scanStart')
+      } catch (error) {
+        console.error('Error in scanStart handler:', error)
+      }
     })
 
     noble.on('scanStop', () => {
-      console.log('Scan stopped')
-      this.isScanning = false
-      this.emit('scanStop')
+      try {
+        console.log('Scan stopped')
+        this.isScanning = false
+        this.emit('scanStop')
+      } catch (error) {
+        console.error('Error in scanStop handler:', error)
+      }
+    })
+
+    noble.on('warning', (message) => {
+      console.warn('Noble warning:', message)
+    })
+
+    noble.on('error', (error) => {
+      console.error('Noble error:', error)
     })
   }
 
