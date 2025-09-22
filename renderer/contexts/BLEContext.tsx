@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
 
 export interface BLEDevice {
   id: string
@@ -26,7 +26,24 @@ export interface BLEState {
   isConnected: boolean
 }
 
-export function useBLE() {
+interface BLEContextType {
+  bleState: BLEState
+  logs: string[]
+  startScan: (timeout?: number) => Promise<{ success: boolean; error?: string }>
+  stopScan: () => Promise<{ success: boolean; error?: string }>
+  connect: (deviceId: string) => Promise<{ success: boolean; error?: string }>
+  disconnect: () => Promise<{ success: boolean; error?: string }>
+  discoverServices: () => Promise<{ success: boolean; error?: string; data?: BLEService[] }>
+  writeData: (characteristicUuid: string, data: number[]) => Promise<{ success: boolean; error?: string }>
+  readData: (characteristicUuid: string) => Promise<{ success: boolean; error?: string; data?: number[] }>
+  subscribeNotifications: (characteristicUuid: string) => Promise<{ success: boolean; error?: string }>
+  unsubscribeNotifications: (characteristicUuid: string) => Promise<{ success: boolean; error?: string }>
+  clearLogs: () => void
+}
+
+const BLEContext = createContext<BLEContextType | undefined>(undefined)
+
+export function BLEProvider({ children }: { children: ReactNode }) {
   const [bleState, setBleState] = useState<BLEState>({
     state: 'unknown',
     isScanning: false,
@@ -257,7 +274,7 @@ export function useBLE() {
     setLogs([])
   }, [])
 
-  return {
+  const value: BLEContextType = {
     bleState,
     logs,
     startScan,
@@ -271,4 +288,14 @@ export function useBLE() {
     unsubscribeNotifications,
     clearLogs,
   }
+
+  return <BLEContext.Provider value={value}>{children}</BLEContext.Provider>
+}
+
+export function useBLE() {
+  const context = useContext(BLEContext)
+  if (context === undefined) {
+    throw new Error('useBLE must be used within a BLEProvider')
+  }
+  return context
 }

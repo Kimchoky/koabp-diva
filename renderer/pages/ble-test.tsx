@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
-import { useBLE } from '../hooks/useBLE'
+import { useBLE } from '../contexts/BLEContext'
 
 export default function BLETestPage() {
   const {
@@ -38,10 +38,16 @@ export default function BLETestPage() {
     await discoverServices()
   }
 
-  const handleWriteData = async () => {
-    if (selectedCharacteristic && writeDataInput) {
+  const handleWriteData = async (paramInput?: string) => {
+    if (selectedCharacteristic && (paramInput || writeDataInput)) {
       try {
-        const data = writeDataInput.split(' ').map(hex => parseInt(hex, 16))
+        const data = (paramInput || writeDataInput).split(',').map(hex => {
+          hex = hex.trim()
+          if (hex.startsWith('0x'))
+            hex = hex.slice(2)
+
+          return parseInt(hex, 16)
+        })
         await writeData(selectedCharacteristic, data)
       } catch (error) {
         console.error('Invalid hex data:', error)
@@ -138,14 +144,14 @@ export default function BLETestPage() {
                   <button
                     onClick={handleStartScan}
                     disabled={bleState.isScanning || bleState.state !== 'poweredOn'}
-                    className="bg-blue-500 text-white px-4 py-2 rounded disabled:bg-gray-300"
+                    className="bg-blue-500 text-white px-4 py-2 rounded disabled:bg-gray-300 disabled:text-gray-500"
                   >
                     Start Scan
                   </button>
                   <button
                     onClick={stopScan}
                     disabled={!bleState.isScanning}
-                    className="bg-red-500 text-white px-4 py-2 rounded disabled:bg-gray-300"
+                    className="bg-red-500 text-white px-4 py-2 rounded disabled:bg-gray-300 disabled:text-gray-500"
                   >
                     Stop Scan
                   </button>
@@ -158,7 +164,7 @@ export default function BLETestPage() {
                   <select
                     value={selectedDevice}
                     onChange={(e) => setSelectedDevice(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                   >
                     <option value="">Select a device...</option>
                     {bleState.devices.map((device) => (
@@ -173,21 +179,21 @@ export default function BLETestPage() {
                   <button
                     onClick={handleConnect}
                     disabled={!selectedDevice || bleState.isConnected}
-                    className="bg-green-500 text-white px-4 py-2 rounded disabled:bg-gray-300"
+                    className="bg-green-500 text-white px-4 py-2 rounded disabled:bg-gray-300 disabled:text-gray-500"
                   >
                     Connect
                   </button>
                   <button
                     onClick={disconnect}
                     disabled={!bleState.isConnected}
-                    className="bg-red-500 text-white px-4 py-2 rounded disabled:bg-gray-300"
+                    className="bg-red-500 text-white px-4 py-2 rounded disabled:bg-gray-300 disabled:text-gray-500"
                   >
                     Disconnect
                   </button>
                   <button
                     onClick={handleDiscoverServices}
                     disabled={!bleState.isConnected}
-                    className="bg-purple-500 text-white px-4 py-2 rounded disabled:bg-gray-300"
+                    className="bg-purple-500 text-white px-4 py-2 rounded disabled:bg-gray-300 disabled:text-gray-500"
                   >
                     Discover Services
                   </button>
@@ -208,7 +214,7 @@ export default function BLETestPage() {
                     <select
                       value={selectedCharacteristic}
                       onChange={(e) => setSelectedCharacteristic(e.target.value)}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900"
                     >
                       <option value="">Select a characteristic...</option>
                       {bleState.services.map((service) =>
@@ -240,43 +246,66 @@ export default function BLETestPage() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Write Data (hex bytes separated by spaces)
+                    Send Command
+                  </label>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={()=>handleWriteData('0x02, 0x08, 0x11, 0x11, 0x00, 0x00, 0x00, 0x03')}
+                    className="bg-blue-500 text-white px-4 py-2 rounded disabled:bg-gray-300 disabled:text-gray-500"
+                  >
+                    Start BP
+                  </button>
+                  <button
+                    onClick={()=>handleWriteData('0x02, 0x08, 0x11, 0x33, 0x00, 0x00, 0x00, 0x03')}
+                    className="bg-blue-500 text-white px-4 py-2 rounded disabled:bg-gray-300 disabled:text-gray-500"
+                  >
+                    Stop BP
+                  </button>
+                </div>
+              </div>
+
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Write Data (hex bytes separated by commas)
                   </label>
                   <input
                     type="text"
                     value={writeDataInput}
                     onChange={(e) => setWriteDataInput(e.target.value)}
-                    placeholder="e.g., 01 02 03 FF"
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    placeholder="e.g., 01, 02, 03, FF   or  0x01, 0x02, 0xF3, 0x33"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 placeholder-gray-400"
                   />
                 </div>
 
                 <div className="flex flex-wrap gap-2">
                   <button
-                    onClick={handleWriteData}
+                    onClick={()=>handleWriteData()}
                     disabled={!selectedCharacteristic || !writeDataInput}
-                    className="bg-blue-500 text-white px-4 py-2 rounded disabled:bg-gray-300"
+                    className="bg-blue-500 text-white px-4 py-2 rounded disabled:bg-gray-300 disabled:text-gray-500"
                   >
                     Write Data
                   </button>
                   <button
                     onClick={handleReadData}
                     disabled={!selectedCharacteristic}
-                    className="bg-green-500 text-white px-4 py-2 rounded disabled:bg-gray-300"
+                    className="bg-green-500 text-white px-4 py-2 rounded disabled:bg-gray-300 disabled:text-gray-500"
                   >
                     Read Data
                   </button>
                   <button
                     onClick={handleSubscribeNotifications}
                     disabled={!selectedCharacteristic || subscribedCharacteristics.has(selectedCharacteristic)}
-                    className="bg-purple-500 text-white px-4 py-2 rounded disabled:bg-gray-300"
+                    className="bg-purple-500 text-white px-4 py-2 rounded disabled:bg-gray-300 disabled:text-gray-500"
                   >
                     Subscribe
                   </button>
                   <button
                     onClick={handleUnsubscribeNotifications}
                     disabled={!selectedCharacteristic || !subscribedCharacteristics.has(selectedCharacteristic)}
-                    className="bg-red-500 text-white px-4 py-2 rounded disabled:bg-gray-300"
+                    className="bg-red-500 text-white px-4 py-2 rounded disabled:bg-gray-300 disabled:text-gray-500"
                   >
                     Unsubscribe
                   </button>

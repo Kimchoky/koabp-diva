@@ -22,6 +22,7 @@ export class BLEManager extends EventEmitter {
   private connectedDevice: any = null
   private connectedCharacteristics: Map<string, any> = new Map()
   private isScanning = false
+  private discoveredPeripherals: Map<string, any> = new Map()
 
   constructor() {
     super()
@@ -44,9 +45,15 @@ export class BLEManager extends EventEmitter {
     })
 
     noble.on('discover', (peripheral) => {
+      // Store the peripheral for later connection
+      this.discoveredPeripherals.set(peripheral.id, peripheral)
+
+      const name = peripheral.advertisement.localName;
+      if (!name.startsWith("KOABP-")) return null;
+
       const device: BLEDevice = {
         id: peripheral.id,
-        name: peripheral.advertisement.localName || 'Unknown Device',
+        name: name || 'Unknown Device',
         rssi: peripheral.rssi,
         advertisement: peripheral.advertisement
       }
@@ -70,12 +77,14 @@ export class BLEManager extends EventEmitter {
 
   async startScan(timeout?: number): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (noble.state !== 'poweredOn') {
+      if (noble._state !== 'poweredOn') {
         reject(new Error('BLE is not powered on'))
         return
       }
 
       console.log('Starting BLE scan...')
+      // Clear previously discovered peripherals
+      this.discoveredPeripherals.clear()
       noble.startScanning([], false)
 
       if (timeout) {
@@ -103,18 +112,25 @@ export class BLEManager extends EventEmitter {
         return
       }
 
-      const peripheral = noble._peripherals[deviceId]
+      const peripheral = this.discoveredPeripherals.get(deviceId)
       if (!peripheral) {
-        reject(new Error('Device not found'))
+        reject(new Error(`Device not found: ${deviceId}. Make sure to scan for devices first.`))
         return
       }
 
-      console.log('Connecting to device:', deviceId)
+      console.log('Connecting to device:', deviceId, 'Name:', peripheral.advertisement.localName)
+
+      // Set a connection timeout
+      const connectionTimeout = setTimeout(() => {
+        reject(new Error('Connection timeout'))
+      }, 10000) // 10 seconds timeout
 
       peripheral.connect((error: any) => {
+        clearTimeout(connectionTimeout)
+
         if (error) {
           console.error('Connection failed:', error)
-          reject(error)
+          reject(new Error(`Connection failed: ${error.message || error}`))
           return
         }
 
@@ -122,7 +138,8 @@ export class BLEManager extends EventEmitter {
         console.log('Connected to device:', deviceId)
         this.emit('deviceConnected', deviceId)
 
-        peripheral.on('disconnect', () => {
+        // Setup disconnect handler
+        peripheral.once('disconnect', () => {
           console.log('Device disconnected:', deviceId)
           this.connectedDevice = null
           this.connectedCharacteristics.clear()
@@ -303,6 +320,6 @@ export class BLEManager extends EventEmitter {
   }
 
   getState(): string {
-    return noble.state
+    return noble._state
   }
 }

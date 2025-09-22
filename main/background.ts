@@ -106,10 +106,13 @@ ipcMain.handle('ble-stop-scan', async () => {
 
 ipcMain.handle('ble-connect', async (event, deviceId) => {
   try {
+    console.log('IPC: Attempting to connect to device:', deviceId)
     await bleManager.connect(deviceId)
+    console.log('IPC: Successfully connected to device:', deviceId)
     return { success: true }
   } catch (error) {
-    return { success: false, error: error.message }
+    console.error('IPC: Connection failed:', error)
+    return { success: false, error: error.message || 'Unknown connection error' }
   }
 })
 

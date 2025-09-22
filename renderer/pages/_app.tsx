@@ -1,10 +1,15 @@
 import React from 'react'
 import type { AppProps } from 'next/app'
+import { BLEProvider } from '../contexts/BLEContext'
 
 import '../styles/globals.css'
 
-function MyApp({ Component, pageProps }: AppProps) {
-  return <Component {...pageProps} />
+function App({ Component, pageProps }: AppProps) {
+  return (
+    <BLEProvider>
+      <Component {...pageProps} />
+    </BLEProvider>
+  )
 }
 
-export default MyApp
+export default App
