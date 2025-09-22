@@ -1,38 +1,29 @@
-<p align="center"><img src="https://i.imgur.com/a9QWW0v.png"></p>
+# Koabp-DIVA
 
-## Usage
+KOABP 제품군의 생산 직후, 반자동화된 검사를 위한 데스크탑 앱.
 
-### Create an App
+프로젝트 코드네임인 DIVA는 "Device Imprinting and Verifying Application"의 의미를 가짐 
 
-```
-# with npx
-$ npx create-nextron-app my-app --example with-tailwindcss
+## Stack
+- Nextron (Electron + Next.js)
+- noble library
+- Claude :)
 
-# with yarn
-$ yarn create nextron-app my-app --example with-tailwindcss
 
-# with pnpm
-$ pnpm dlx create-nextron-app my-app --example with-tailwindcss
-```
+### 개발환경 설정
 
-### Install Dependencies
+Hot-reload를 지원함.
 
-```
-$ cd my-app
+```shell
+# 의존 라이브러리 설치
+$ npm install
 
-# using yarn or npm
-$ yarn (or `npm install`)
-
-# using pnpm
-$ pnpm install --shamefully-hoist
+# 개발 앱 실행 
+$ npm run dev
 ```
 
-### Use it
-
-```
-# development mode
-$ yarn dev (or `npm run dev` or `pnpm run dev`)
-
+### 배포용 앱 빌드
+```shell
 # production build
-$ yarn build (or `npm run build` or `pnpm run build`)
+$ npm run make
 ```
