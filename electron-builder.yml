@@ -1,6 +1,7 @@
-appId: com.example.nextron
-productName: My Nextron App
-copyright: Copyright © 2018 Yoshihide Shiono
+appId: com.koabp.diva
+productName: KoaBP DIVA
+copyright: Copyright © 2025 MEDICAL PARK CO.,LTD.
+author: jungsoo.kim
 directories:
   output: dist
   buildResources: resources

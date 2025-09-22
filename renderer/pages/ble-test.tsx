@@ -3,7 +3,7 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useBLE } from '../contexts/BLEContext'
 
-export default function BLETestPage() {
+export default function BleTest() {
   const {
     bleState,
     logs,
