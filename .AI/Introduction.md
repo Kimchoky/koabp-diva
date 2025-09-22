@@ -23,7 +23,7 @@ KB-1 모델은 Blood Pressure를 측정하여, BLE 를 통해 모바일 앱과 �
 [Architecture.md](./Architecture.md)를 참조한다.
 
 ## 화면 정의
-[Screen-layout.md](./Screen-layout.md)을 참조한다.
+[Screens.md](./Screens.md)을 참조한다.
 
 
 - BLE 디바이스 스캔/연결/연결해제
