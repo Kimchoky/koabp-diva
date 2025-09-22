@@ -2,6 +2,7 @@ import path from 'path'
 import { app, ipcMain } from 'electron'
 import serve from 'electron-serve'
 import { createWindow } from './helpers'
+import { BLEManager } from './ble-manager'
 
 const isProd = process.env.NODE_ENV === 'production'
 
@@ -10,6 +11,8 @@ if (isProd) {
 } else {
   app.setPath('userData', `${app.getPath('userData')} (development)`)
 }
+
+let bleManager: BLEManager
 
 ;(async () => {
   await app.whenReady()
@@ -22,6 +25,10 @@ if (isProd) {
     },
   })
 
+  // Initialize BLE Manager
+  bleManager = new BLEManager()
+  setupBLEEventHandlers(mainWindow)
+
   if (isProd) {
     await mainWindow.loadURL('app://./home')
   } else {
@@ -33,6 +40,140 @@ if (isProd) {
 
 app.on('window-all-closed', () => {
   app.quit()
+})
+
+// BLE Event Handlers
+function setupBLEEventHandlers(mainWindow: any) {
+  bleManager.on('stateChange', (state) => {
+    mainWindow.webContents.send('ble-state-change', state)
+  })
+
+  bleManager.on('deviceDiscovered', (device) => {
+    mainWindow.webContents.send('ble-device-discovered', device)
+  })
+
+  bleManager.on('scanStart', () => {
+    mainWindow.webContents.send('ble-scan-start')
+  })
+
+  bleManager.on('scanStop', () => {
+    mainWindow.webContents.send('ble-scan-stop')
+  })
+
+  bleManager.on('deviceConnected', (deviceId) => {
+    mainWindow.webContents.send('ble-device-connected', deviceId)
+  })
+
+  bleManager.on('deviceDisconnected', (deviceId) => {
+    mainWindow.webContents.send('ble-device-disconnected', deviceId)
+  })
+
+  bleManager.on('dataReceived', (characteristicUuid, data) => {
+    mainWindow.webContents.send('ble-data-received', characteristicUuid, Array.from(data))
+  })
+
+  bleManager.on('notification', (characteristicUuid, data) => {
+    mainWindow.webContents.send('ble-notification', characteristicUuid, Array.from(data))
+  })
+
+  bleManager.on('dataWritten', (characteristicUuid, data) => {
+    mainWindow.webContents.send('ble-data-written', characteristicUuid, Array.from(data))
+  })
+}
+
+// BLE IPC Handlers
+ipcMain.handle('ble-get-state', async () => {
+  return bleManager.getState()
+})
+
+ipcMain.handle('ble-start-scan', async (event, timeout) => {
+  try {
+    await bleManager.startScan(timeout)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('ble-stop-scan', async () => {
+  try {
+    await bleManager.stopScan()
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('ble-connect', async (event, deviceId) => {
+  try {
+    await bleManager.connect(deviceId)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('ble-disconnect', async () => {
+  try {
+    await bleManager.disconnect()
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('ble-discover-services', async () => {
+  try {
+    const services = await bleManager.discoverServices()
+    return { success: true, data: services }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('ble-write-data', async (event, characteristicUuid, data) => {
+  try {
+    const buffer = Buffer.from(data)
+    await bleManager.writeData(characteristicUuid, buffer)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('ble-read-data', async (event, characteristicUuid) => {
+  try {
+    const data = await bleManager.readData(characteristicUuid)
+    return { success: true, data: Array.from(data) }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('ble-subscribe-notifications', async (event, characteristicUuid) => {
+  try {
+    await bleManager.subscribeToNotifications(characteristicUuid)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('ble-unsubscribe-notifications', async (event, characteristicUuid) => {
+  try {
+    await bleManager.unsubscribeFromNotifications(characteristicUuid)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('ble-get-connected-device', async () => {
+  return bleManager.getConnectedDevice()
+})
+
+ipcMain.handle('ble-is-device-connected', async () => {
+  return bleManager.isDeviceConnected()
 })
 
 ipcMain.on('message', async (event, arg) => {

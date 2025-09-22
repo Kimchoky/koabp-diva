@@ -27,8 +27,9 @@ export default function HomePage() {
         <span>=</span>
         <span>💕 </span>
       </div>
-      <div className="mt-1 w-full flex-wrap flex justify-center">
-        <Link href="/next">Go to next page</Link>
+      <div className="mt-1 w-full flex-wrap flex justify-center space-x-4">
+        <Link href="/next" className="text-blue-600 hover:text-blue-800 underline">Go to next page</Link>
+        <Link href="/ble-test" className="text-green-600 hover:text-green-800 underline">BLE Test Dashboard</Link>
       </div>
     </React.Fragment>
   )
