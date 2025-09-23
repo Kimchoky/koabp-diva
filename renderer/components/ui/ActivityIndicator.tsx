@@ -51,10 +51,32 @@ const Squares = ({ width = ActivityIndicator.defaultSize.width, height =Activity
 
 }
 
-const LegacySpinner = ({ width = ActivityIndicator.defaultSize.width, height = ActivityIndicator.defaultSize.height, className }) => {
+const colorMap = {
+  primary: 'rgb(1, 183, 207)',
+  success: 'rgb(16, 185, 129)',
+  warning: 'rgb(245, 158, 11)',
+  error: 'rgb(239, 68, 68)',
+};
+
+type ColorChoice = keyof typeof colorMap | 'inherit';
+
+interface LegacySpinnerProps {
+  width?: number | string;
+  height?: number | string;
+  className?: string;
+  color?: ColorChoice;
+}
+
+const LegacySpinner = ({
+  width = ActivityIndicator.defaultSize.width,
+  height = ActivityIndicator.defaultSize.height,
+  className,
+  color = 'primary'
+}: LegacySpinnerProps) => {
   const strokeWidth = 8;
   const radius = 40;
   const circumference = 2 * Math.PI * radius;
+  const selectedColor = color === 'inherit' ? 'currentColor' : colorMap[color as keyof typeof colorMap];
 
   return (
     <svg
@@ -67,11 +89,11 @@ const LegacySpinner = ({ width = ActivityIndicator.defaultSize.width, height = A
     >
       <defs>
         <linearGradient id="spinner-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="rgb(0, 155, 176)" stopOpacity="1" />
-          <stop offset="25%" stopColor="rgb(0, 155, 176)" stopOpacity="0.8" />
-          <stop offset="50%" stopColor="rgb(0, 155, 176)" stopOpacity="0.4" />
-          <stop offset="75%" stopColor="rgb(0, 155, 176)" stopOpacity="0.2" />
-          <stop offset="100%" stopColor="rgb(0, 155, 176)" stopOpacity="0" />
+          <stop offset="0%" stopColor={selectedColor} stopOpacity="1" />
+          <stop offset="25%" stopColor={selectedColor} stopOpacity="0.8" />
+          <stop offset="50%" stopColor={selectedColor} stopOpacity="0.4" />
+          <stop offset="75%" stopColor={selectedColor} stopOpacity="0.2" />
+          <stop offset="100%" stopColor={selectedColor} stopOpacity="0" />
         </linearGradient>
       </defs>
       <circle

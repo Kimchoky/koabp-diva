@@ -1,3 +1,4 @@
+const {cn} = require("./components/utils/cn");
 module.exports = {
   content: [
     './renderer/pages/**/*.{js,ts,jsx,tsx}',
@@ -7,11 +8,12 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // CSS 변수를 Tailwind 색상으로 등록
-        primary: 'var(--color-primary)',
-        success: 'var(--color-success)',
-        warning: 'var(--color-warning)',
-        error: 'var(--color-error)',
+        primary: '#01B7CF',
+        success: '#10b981',
+        warning: '#f59e0b',
+        error: '#ef4444',
+        info: '#1d73e3',
+
 
         // 또는 직접 색상 값 정의
         brand: {

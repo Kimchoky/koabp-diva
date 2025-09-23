@@ -5,20 +5,18 @@
 @layer base {
   :root {
     /* 색상 변수 정의 */
-    --color-primary: #01B7CF;
-    --color-success: #10b981;
-    --color-warning: #f59e0b;
-    --color-error: #ef4444;
-
-    /* RGB 값으로도 정의 가능 (Tailwind opacity 수정자 사용 시) */
-    --color-primary-rgb: 1, 183, 207;
-    --color-success-rgb: 16, 185, 129;
-    --color-warning-rgb: 245, 158, 11;
-    --color-error-rgb: 239, 68, 68;
+    --color-bg-light: #e5e7eb; /* gray-200 */
+    --color-bg-dark: #111827; /* gray-900 */
+    --color-surface-light: #d5d5d5; /*  */
+    --color-surface-dark: #1f2937; /* gray-800 */
+    --color-border-light: #b9b9b9;  /* gray-200 */
+    --color-border-dark: #374151;   /* gray-700 */
+    --color-text-light: #111827;  /* gray-200 */
+    --color-text-dark: #e5e7eb;   /*gray-900*/
   }
 
   body {
-    @apply bg-gray-200 text-black dark:bg-gray-900 dark:text-white;
+    @apply bg-[--color-bg-light] text-[--color-text-light] dark:bg-[--color-bg-dark] dark:text-[--color-text-dark];
   }
 }
 
@@ -27,112 +25,16 @@
   .btn {
     @apply py-2 px-3 rounded transition-colors duration-200;
   }
-
-  /* CSS 변수를 사용한 동적 스타일 */
-  .btn-primary {
-    background-color: var(--color-primary);
-    border-color: var(--color-primary);
-    @apply text-white;
-  }
-
-  .btn-success {
-    background-color: var(--color-success);
-    border-color: var(--color-success);
-    @apply text-white;
-  }
-
-  .btn-warning {
-    background-color: var(--color-warning);
-    border-color: var(--color-warning);
-    @apply text-white;
-  }
-
-  .btn-error {
-    background-color: var(--color-error);
-    border-color: var(--color-error);
-    @apply text-white;
-  }
-
-  .btn-outlined {
-    @apply bg-transparent text-current;
-    border: 1px solid currentColor;
-  }
-
-  .btn-outlined.btn-primary {
-    color: var(--color-primary);
-    border-color: var(--color-primary);
-    background-color: transparent;
-  }
-
-  .btn-outlined.btn-success {
-    color: var(--color-success);
-    border-color: var(--color-success);
-    background-color: transparent;
-  }
-
-  .btn-outlined.btn-warning {
-    color: var(--color-warning);
-    border-color: var(--color-warning);
-    background-color: transparent;
-  }
-
-  .btn-outlined.btn-error {
-    color: var(--color-error);
-    border-color: var(--color-error);
-    background-color: transparent;
-  }
-
-  /* 유틸리티 클래스들 */
-  .text-primary {
-    color: var(--color-primary);
-  }
-
-  .text-success {
-    color: var(--color-success);
-  }
-
-  .text-warning {
-    color: var(--color-warning);
-  }
-
-  .text-error {
-    color: var(--color-error);
-  }
-
-  .bg-primary {
-    background-color: var(--color-primary);
-  }
-
-  .bg-success {
-    background-color: var(--color-success);
-  }
-
-  .bg-warning {
-    background-color: var(--color-warning);
-  }
-
-  .bg-error {
-    background-color: var(--color-error);
-  }
-
-  .border-primary {
-    border-color: var(--color-primary);
-  }
-
-  .border-success {
-    border-color: var(--color-success);
-  }
-
-  .border-warning {
-    border-color: var(--color-warning);
-  }
-
-  .border-error {
-    border-color: var(--color-error);
-  }
 }
 
 
 @layer utilities {
+
+  .stack-surface {
+    @apply bg-[--color-surface-light] dark:bg-[--color-surface-dark] rounded-lg shadow-sm p-4;
+  }
+  .stack-outlined {
+    @apply border border-[--color-border-light] dark:border-[--color-border-dark] rounded-lg p-4;
+  }
 
 }

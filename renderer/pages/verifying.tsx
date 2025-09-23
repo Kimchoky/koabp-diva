@@ -1,11 +1,7 @@
 import Image from "next/image";
 import DeviceScanner from "../components/DeviceScanner";
 import BleStateIndicator from "../components/BleStateIndicator";
-import {Bluetooth, MessageSquareWarning} from "lucide-react";
 import React from "react";
-import DialogDemo from "../components/DialogDemo";
-import ActivityIndicator from "../components/ui/ActivityIndicator";
-import Button from "../components/ui/Button";
 
 
 export default function VerifyingPage() {
@@ -21,10 +17,7 @@ export default function VerifyingPage() {
 
       <DeviceScanner />
 
-      <ActivityIndicator.Squares width={'2em'} height={'2em'} />
-      <ActivityIndicator.LegacySpinner width={'2em'} height={'2em'} />
 
-      <Button loading>오예</Button>
 
 
     </div>

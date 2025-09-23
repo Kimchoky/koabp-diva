@@ -1,14 +1,18 @@
 import Button from "./ui/Button";
 import {useBLE} from "../contexts/BLEContext";
 import React, {useState} from "react";
+import {useDialog} from "../contexts/DialogContext";
 
 export default function DeviceScanner() {
 
   const { bleState, startScan, stopScan, connect, disconnect, discoverServices } = useBLE();
+  const dialog = useDialog();
 
   const [selectedCharacteristic, setSelectedCharacteristic] = useState<string>('')
   const [writeDataInput, setWriteDataInput] = useState<string>('')
   const [subscribedCharacteristics, setSubscribedCharacteristics] = useState<Set<string>>(new Set())
+
+  const [isConnecting, setIsConnecting] = useState(false);
 
 
   const handleScanStart = async () => {
@@ -28,10 +32,22 @@ export default function DeviceScanner() {
   }
 
   const handleConnect = async (deviceId: string) => {
+
+    await handleScanStop();
+    setIsConnecting(true);
+
     try {
-      await connect(deviceId)
+
+      const connectPromise = connect(deviceId);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Connection timed out after 3 seconds')), 3000)
+      );
+      await Promise.race([connectPromise, timeoutPromise]);
     } catch (error) {
-      console.error('Connection failed:', error)
+      dialog.showError('', '기기에 연결하지 못하였습니다.')
+      console.error('C!onnection failed:', error)
+    } finally {
+      setIsConnecting(false);
     }
   }
 
@@ -48,7 +64,7 @@ export default function DeviceScanner() {
       <div className="flex gap-2 mb-4">
         <Button
           onClick={handleScanStart}
-          disabled={bleState.isScanning}
+          disabled={bleState.isScanning || isConnecting}
           appearance="contained"
           mode="primary"
           icon="Search"
@@ -87,9 +103,10 @@ export default function DeviceScanner() {
                     onClick={() => handleConnect(device.id)}
                     size="sm"
                     icon="Bluetooth"
-                    disabled={bleState.isConnected && bleState.connectedDevice === device.id}
+                    disabled={(bleState.isConnected && bleState.connectedDevice === device.id) || isConnecting}
                   >
-                    {bleState.isConnected && bleState.connectedDevice === device.id ? '연결됨' : '연결'}
+                    {bleState.isConnected && bleState.connectedDevice === device.id ? '연결됨' :
+                      isConnecting ? '연결중' : '연결'}
                   </Button>
                 </li>
               ))}

@@ -4,7 +4,7 @@ import { BLEProvider } from '../contexts/BLEContext'
 import { DialogProvider } from '../contexts/DialogContext'
 
 import '../styles/globals.css'
-import DialogDemo from "../components/DialogDemo";
+import ComponentDemo from "../components/ComponentDemo";
 
 function App({ Component, pageProps }: AppProps) {
   return (
@@ -13,7 +13,6 @@ function App({ Component, pageProps }: AppProps) {
 
         <div className="min-h-screen relative">
           <Component {...pageProps} />
-          <DialogDemo />
         </div>
 
       </DialogProvider>

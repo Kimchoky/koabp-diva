@@ -1,10 +1,31 @@
-import React, { createContext, useContext, ReactNode } from 'react'
-import { useDialog } from '../hooks/useDialog'
+import React, {createContext, ReactNode, useCallback, useContext, useState} from 'react'
 import Dialog from '../components/ui/BlurNotice'
 
+export interface DialogOptions {
+  title?: string
+  message?: string
+  icon?: React.ReactNode
+  confirmText?: string
+  cancelText?: string
+  onConfirm?: () => void | Promise<void>
+  onCancel?: () => void
+  type?: 'info' | 'warning' | 'error' | 'success'
+  showCancel?: boolean
+}
+
+export interface DialogState {
+  isOpen: boolean
+  options: DialogOptions
+}
+
+
+// --- DialogContext.tsx ---
+
 interface DialogContextType {
-  showDialog: (options: import('../hooks/useDialog').DialogOptions) => void
+  showDialog: (options: DialogOptions) => void
   hideDialog: () => void
+  handleConfirm:() => void
+  handleCancel:() => void
   showAlert: (title: string, message: string, onConfirm?: () => void) => void
   showConfirm: (title: string, message: string, onConfirm?: () => void, onCancel?: () => void) => void
   showError: (title: string, message: string, onConfirm?: () => void) => void
@@ -14,35 +35,117 @@ interface DialogContextType {
 const DialogContext = createContext<DialogContextType | undefined>(undefined)
 
 export function DialogProvider({ children }: { children: ReactNode }) {
-  const dialog = useDialog()
+
+  const [dialogState, setDialogState] = useState<DialogState>({
+    isOpen: false,
+    options: {}
+  })
+
+  const showDialog = useCallback((options: DialogOptions) => {
+    setDialogState({
+      isOpen: true,
+      options: {
+        confirmText: '확인',
+        cancelText: '취소',
+        showCancel: true,
+        type: 'info',
+        ...options
+      }
+    })
+  }, [])
+
+  const hideDialog = useCallback(() => {
+    setDialogState(prev => ({
+      ...prev,
+      isOpen: false
+    }))
+  }, [])
+
+  const handleConfirm = useCallback(async () => {
+    if (dialogState.options.onConfirm) {
+      await dialogState.options.onConfirm()
+    }
+    hideDialog()
+  }, [dialogState.options, hideDialog])
+
+  const handleCancel = useCallback(() => {
+    if (dialogState.options.onCancel) {
+      dialogState.options.onCancel()
+    }
+    hideDialog()
+  }, [dialogState.options, hideDialog])
+
+  // 편의 메소드
+  const showAlert = useCallback((title: string, message: string, onConfirm?: () => void) => {
+    showDialog({
+      title,
+      message,
+      onConfirm,
+      showCancel: false,
+      type: 'info'
+    })
+  }, [showDialog])
+
+  const showConfirm = useCallback((title: string, message: string, onConfirm?: () => void, onCancel?: () => void) => {
+    showDialog({
+      title,
+      message,
+      onConfirm,
+      onCancel,
+      showCancel: true,
+      type: 'warning'
+    })
+  }, [showDialog])
+
+  const showError = useCallback((title: string, message: string, onConfirm?: () => void) => {
+    showDialog({
+      title,
+      message,
+      onConfirm,
+      showCancel: false,
+      type: 'error'
+    })
+  }, [showDialog])
+
+  const showSuccess = useCallback((title: string, message: string, onConfirm?: () => void) => {
+    showDialog({
+      title,
+      message,
+      onConfirm,
+      showCancel: false,
+      type: 'success'
+    })
+  }, [showDialog])
 
   const contextValue: DialogContextType = {
-    showDialog: dialog.showDialog,
-    hideDialog: dialog.hideDialog,
-    showAlert: dialog.showAlert,
-    showConfirm: dialog.showConfirm,
-    showError: dialog.showError,
-    showSuccess: dialog.showSuccess
+    showDialog,
+    hideDialog,
+    handleConfirm,
+    handleCancel,
+    showAlert,
+    showConfirm,
+    showError,
+    showSuccess,
   }
 
   return (
     <DialogContext.Provider value={contextValue}>
       {children}
       <Dialog
-        isOpen={dialog.isOpen}
-        options={dialog.options}
-        onConfirm={dialog.handleConfirm}
-        onCancel={dialog.handleCancel}
-        onClose={dialog.hideDialog}
+        isOpen={dialogState.isOpen}
+        options={dialogState.options}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+        onClose={hideDialog}
       />
     </DialogContext.Provider>
   )
 }
 
-export function useDialogContext() {
+export function useDialog() {
   const context = useContext(DialogContext)
   if (context === undefined) {
-    throw new Error('useDialogContext must be used within a DialogProvider')
+    throw new Error('useDialog must be used within a DialogProvider')
   }
   return context
 }
