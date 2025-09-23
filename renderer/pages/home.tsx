@@ -1,22 +1,16 @@
 import React from 'react'
 import ThemeToggle from "../components/ThemeToggle";
-import {useBLE} from "../contexts/BLEContext";
-import Link from "next/link";
-import ComponentDemo from "../components/ComponentDemo";
+import UserList from "../components/UserList";
 
 export default function HomePage() {
 
   return (
 
-    <div>
+    <div className="fixed inset-0 z-50 backdrop-blur-sm flex justify-center items-center">
 
       <ThemeToggle/>
 
-
-      <Link href={"/verifying"}>Go to Verifying</Link>
-
-
-      <ComponentDemo />
+      <UserList />
 
     </div>
   )

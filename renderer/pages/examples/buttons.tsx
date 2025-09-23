@@ -1,8 +1,8 @@
 import React from 'react'
 import {Bluetooth} from 'lucide-react'
-import {useDialog} from "../contexts/DialogContext";
-import Button from "./ui/Button";
-import {HStack, VStack} from "./ui/Stack";
+import {useDialog} from "../../contexts/DialogContext";
+import {HStack} from "../../components/ui/Stack";
+import Button from "../../components/ui/Button";
 
 export default function ComponentDemo() {
   const {showAlert, showConfirm, showError, showSuccess, showDialog} = useDialog()
