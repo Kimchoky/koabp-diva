@@ -1,23 +1,33 @@
 import {HStack, VStack} from "./ui/Stack";
+import {useRouter} from "next/router";
 
 
 export default function UserList() {
+
+  const router = useRouter();
 
   // TODO: Link API
   const users = [
     {
       name: '신라면',
-      lastLogin: Date.now() - (1000 * 60 * 30)
+      lastLogin: `11 시간 전`
     },
     {
       name: '고등어 구이',
-      lastLogin: Date.now() - (1000 * 60 * 60 * 2)
+      lastLogin: `12분 전`
+    },
+    {
+      name: '팔도 비빔면',
+      lastLogin: `🟢 접속 중`
     }
   ]
 
 
   const handleLogin = (user) => {
     // TODO: auth context
+
+
+    router.replace('/verifying');
   }
 
   return (
@@ -28,6 +38,7 @@ export default function UserList() {
 
         {users.map((user) => (
           <HStack
+            key={user.name}
             appearance="outlined"
             justifyContent={"space-between"}
             gap={10}
@@ -35,7 +46,7 @@ export default function UserList() {
             onClick={()=>handleLogin(user)}
           >
             <div>{user.name}</div>
-            <div>{new Date(user.lastLogin).toLocaleTimeString()}</div>
+            <div>{user.lastLogin}</div>
           </HStack>
         ))}
 

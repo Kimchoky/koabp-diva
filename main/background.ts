@@ -3,6 +3,7 @@ import { app, ipcMain } from 'electron'
 import serve from 'electron-serve'
 import { createWindow } from './helpers'
 import { BLEManager } from './ble-manager'
+import { registerApiHandlers } from './ipc-handlers/api-handler'
 
 const isProd = process.env.NODE_ENV === 'production'
 
@@ -41,6 +42,9 @@ let bleManager: BLEManager
   // Initialize BLE Manager
   bleManager = new BLEManager()
   setupBLEEventHandlers(mainWindow)
+
+  // Register all IPC handlers
+  registerApiHandlers()
 
   if (isProd) {
     await mainWindow.loadURL('app://./home')
