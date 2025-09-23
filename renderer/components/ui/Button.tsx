@@ -1,6 +1,7 @@
 import { ButtonHTMLAttributes } from "react";
 import { cn } from "../utils/cn"; // 클래스 조합 유틸리티
 import * as LucideIcons from "lucide-react";
+import ActivityIndicator from "./ActivityIndicator";
 
 type ButtonAppearanceTypes = 'contained' | 'outlined'
 type ButtonModeTypes = 'primary' | 'success' | 'warning' | 'error'
@@ -12,6 +13,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   mode?: ButtonModeTypes;
   size?: ButtonSizeTypes;
   icon?: keyof typeof LucideIcons;
+  loading?: boolean;
 }
 
 export default function Button({
@@ -20,6 +22,7 @@ export default function Button({
   mode = 'primary',
   size = 'md',
   icon,
+  loading = false,
   className,
   ...props
 }: ButtonProps) {
@@ -64,6 +67,13 @@ export default function Button({
 
   // 아이콘 컴포넌트 렌더링
   const renderIcon = () => {
+
+    if (loading) {
+      return (
+        <ActivityIndicator.LegacySpinner width={'1em'} height={'1em'} className={children ? 'mr-2' : ''} />
+      )
+    }
+
     if (!icon) return null
 
     const IconComponent = LucideIcons[icon] as React.ComponentType<any>
