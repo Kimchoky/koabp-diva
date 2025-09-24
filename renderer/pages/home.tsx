@@ -8,8 +8,6 @@ export default function HomePage() {
 
     <div className="fixed inset-0 z-50 backdrop-blur-sm flex justify-center items-center">
 
-      <ThemeToggle/>
-
       <UserList />
 
     </div>

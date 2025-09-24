@@ -72,18 +72,13 @@ const bleHandler = {
     return () => ipcRenderer.removeListener('ble-device-disconnected', subscription)
   },
 
-  onDataReceived: (callback: (characteristicUuid: string, data: number[]) => void) => {
-    const subscription = (_event: IpcRendererEvent, characteristicUuid: string, data: number[]) =>
-      callback(characteristicUuid, data)
-    ipcRenderer.on('ble-data-received', subscription)
-    return () => ipcRenderer.removeListener('ble-data-received', subscription)
-  },
-
-  onNotification: (callback: (characteristicUuid: string, data: number[]) => void) => {
-    const subscription = (_event: IpcRendererEvent, characteristicUuid: string, data: number[]) =>
-      callback(characteristicUuid, data)
-    ipcRenderer.on('ble-notification', subscription)
-    return () => ipcRenderer.removeListener('ble-notification', subscription)
+  onDeviceDataParsed: (callback: (args: { characteristicUuid: string, parsedData: any }) => void) => {
+    const subscription = (_event: IpcRendererEvent, args: { characteristicUuid: string, parsedData: any }) => {
+      console.log('--- PRELOAD: Received ble-device-data-parsed ---', args);
+      callback(args)
+    }
+    ipcRenderer.on('ble-device-data-parsed', subscription)
+    return () => ipcRenderer.removeListener('ble-device-data-parsed', subscription)
   },
 
   onDataWritten: (callback: (characteristicUuid: string, data: number[]) => void) => {

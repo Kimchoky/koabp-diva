@@ -32,8 +32,10 @@ let bleManager: BLEManager
   await app.whenReady()
 
   const mainWindow = createWindow('main', {
-    width: 1000,
-    height: 600,
+    width: 1700,
+    height: 1000,
+    minWidth: 1000,
+    minHeight: 800,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
     },
@@ -41,10 +43,14 @@ let bleManager: BLEManager
 
   // Initialize BLE Manager
   bleManager = new BLEManager()
-  setupBLEEventHandlers(mainWindow)
 
   // Register all IPC handlers
   registerApiHandlers()
+
+  // Setup BLE event handlers after the window has finished loading
+  mainWindow.webContents.on('did-finish-load', () => {
+    setupBLEEventHandlers(mainWindow)
+  })
 
   if (isProd) {
     await mainWindow.loadURL('app://./home')
@@ -81,21 +87,18 @@ function setupBLEEventHandlers(mainWindow: any) {
     mainWindow.webContents.send('ble-device-connected', deviceId)
   })
 
-  bleManager.on('deviceDisconnected', (deviceId) => {
-    mainWindow.webContents.send('ble-device-disconnected', deviceId)
-  })
+    bleManager.on('deviceDisconnected', (deviceId) => {
+      mainWindow.webContents.send('ble-device-disconnected', deviceId)
+    })
 
-  bleManager.on('dataReceived', (characteristicUuid, data) => {
-    mainWindow.webContents.send('ble-data-received', characteristicUuid, Array.from(data))
-  })
+    bleManager.on('deviceDataParsed', ({ characteristicUuid, parsedData }) => {
+      console.log('--- BACKGROUND: Forwarding deviceDataParsed to renderer ---', parsedData);
+      mainWindow.webContents.send('ble-device-data-parsed', { characteristicUuid, parsedData })
+    })
 
-  bleManager.on('notification', (characteristicUuid, data) => {
-    mainWindow.webContents.send('ble-notification', characteristicUuid, Array.from(data))
-  })
-
-  bleManager.on('dataWritten', (characteristicUuid, data) => {
-    mainWindow.webContents.send('ble-data-written', characteristicUuid, Array.from(data))
-  })
+    bleManager.on('dataWritten', (characteristicUuid, data) => {
+      mainWindow.webContents.send('ble-data-written', characteristicUuid, Array.from(data))
+    })
 }
 
 // BLE IPC Handlers

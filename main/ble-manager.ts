@@ -1,5 +1,6 @@
 import noble from '@abandonware/noble'
 import { EventEmitter } from 'events'
+import { parseData } from './ble-protocol';
 
 export interface BLEDevice {
   id: string
@@ -264,6 +265,15 @@ export class BLEManager extends EventEmitter {
     })
   }
 
+
+  private handleDataReceived(characteristicUuid: string, data: Buffer) {
+    const parsedData = parseData(data);
+    console.log(`Parsed data from ${characteristicUuid}:`, JSON.stringify(parsedData));
+
+    // 파싱된 구조화된 데이터를 emit
+    this.emit('deviceDataParsed', { characteristicUuid, parsedData });
+  }
+
   async readData(characteristicUuid: string): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       const characteristic = this.connectedCharacteristics.get(characteristicUuid)
@@ -280,8 +290,8 @@ export class BLEManager extends EventEmitter {
           return
         }
 
-        console.log('Data read successfully:', data)
-        this.emit('dataReceived', characteristicUuid, data)
+        // 중앙 핸들러를 통해 데이터 처리
+        this.handleDataReceived(characteristicUuid, data);
         resolve(data)
       })
     })
@@ -302,9 +312,13 @@ export class BLEManager extends EventEmitter {
           return
         }
 
-        characteristic.on('data', (data: Buffer, isNotification: boolean) => {
-          console.log('Received notification:', characteristicUuid, data)
-          this.emit('notification', characteristicUuid, data)
+        // 'data' 이벤트 리스너에서 중앙 핸들러 호출
+        characteristic.on('data', (data: Buffer) => {
+          try {
+            this.handleDataReceived(characteristicUuid, data);
+          } catch (e) {
+            console.error('!!! Critical error in data handler:', e)
+          }
         })
 
         console.log('Subscribed to notifications:', characteristicUuid)

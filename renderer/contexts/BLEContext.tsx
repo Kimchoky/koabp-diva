@@ -1,10 +1,23 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
+import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode, useMemo } from 'react'
+import { UUID_CHARACTERISTIC_CUSTOM_TOTAL_NOTIFY_DATA } from '../lib/UUID'
+import { createCommandSender } from '../lib/ble-commands';
+
+// 파서가 Main 프로세스로 이동했으므로, 여기서 ParsedData 타입만 import 하거나 직접 정의합니다.
+export interface ParsedData {
+  type: string;
+  payload: any;
+}
 
 export interface BLEDevice {
+  /**
+   * 블루투스 모듈의 고유 식별자.
+   * macOS에서는 OS가 할당하는 UUID이며, 다른 OS에서는 주로 MAC 주소입니다.
+   */
   id: string
   name: string
   rssi: number
   advertisement: any
+  batteryLevel?: number
 }
 
 export interface BLECharacteristic {
@@ -24,8 +37,10 @@ export interface BLEState {
   connectedDevice: string | null
   services: BLEService[]
   isConnected: boolean
+  lastParsedData: ParsedData | null // 파싱된 데이터를 저장할 상태
 }
 
+// commandSender를 포함하도록 컨텍스트 타입 업데이트
 interface BLEContextType {
   bleState: BLEState
   logs: string[]
@@ -38,7 +53,9 @@ interface BLEContextType {
   readData: (characteristicUuid: string) => Promise<{ success: boolean; error?: string; data?: number[] }>
   subscribeNotifications: (characteristicUuid: string) => Promise<{ success: boolean; error?: string }>
   unsubscribeNotifications: (characteristicUuid: string) => Promise<{ success: boolean; error?: string }>
+  getConnectedDevice: () => Promise<{ success: boolean; error?: string }>
   clearLogs: () => void
+  commandSender: ReturnType<typeof createCommandSender> | null
 }
 
 const BLEContext = createContext<BLEContextType | undefined>(undefined)
@@ -51,6 +68,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
     connectedDevice: null,
     services: [],
     isConnected: false,
+    lastParsedData: null, // 초기값 설정
   })
 
   const [logs, setLogs] = useState<string[]>([])
@@ -59,92 +77,6 @@ export function BLEProvider({ children }: { children: ReactNode }) {
     const timestamp = new Date().toLocaleTimeString()
     setLogs(prev => [...prev, `[${timestamp}] ${message}`])
   }, [])
-
-  useEffect(() => {
-    if (!window.ble) return
-
-    const unsubscribers: (() => void)[] = []
-
-    // State change listener
-    const unsubStateChange = window.ble.onStateChange((state: string) => {
-      setBleState(prev => ({ ...prev, state }))
-      addLog(`BLE state changed: ${state}`)
-    })
-    unsubscribers.push(unsubStateChange)
-
-    // Device discovered listener
-    const unsubDeviceDiscovered = window.ble.onDeviceDiscovered((device: BLEDevice) => {
-      setBleState(prev => ({
-        ...prev,
-        devices: [...prev.devices.filter(d => d.id !== device.id), device]
-      }))
-      addLog(`Device discovered: ${device.name} (${device.id})`)
-    })
-    unsubscribers.push(unsubDeviceDiscovered)
-
-    // Scan start listener
-    const unsubScanStart = window.ble.onScanStart(() => {
-      setBleState(prev => ({ ...prev, isScanning: true, devices: [] }))
-      addLog('Scan started')
-    })
-    unsubscribers.push(unsubScanStart)
-
-    // Scan stop listener
-    const unsubScanStop = window.ble.onScanStop(() => {
-      setBleState(prev => ({ ...prev, isScanning: false }))
-      addLog('Scan stopped')
-    })
-    unsubscribers.push(unsubScanStop)
-
-    // Device connected listener
-    const unsubDeviceConnected = window.ble.onDeviceConnected((deviceId: string) => {
-      setBleState(prev => ({ ...prev, connectedDevice: deviceId, isConnected: true }))
-      addLog(`Connected to device: ${deviceId}`)
-    })
-    unsubscribers.push(unsubDeviceConnected)
-
-    // Device disconnected listener
-    const unsubDeviceDisconnected = window.ble.onDeviceDisconnected((deviceId: string) => {
-      setBleState(prev => ({
-        ...prev,
-        connectedDevice: null,
-        isConnected: false,
-        services: []
-      }))
-      addLog(`Disconnected from device: ${deviceId}`)
-    })
-    unsubscribers.push(unsubDeviceDisconnected)
-
-    // Data received listener
-    const unsubDataReceived = window.ble.onDataReceived((characteristicUuid: string, data: number[]) => {
-      const dataStr = data.map(b => b.toString(16).padStart(2, '0')).join(' ')
-      addLog(`Data received from ${characteristicUuid}: ${dataStr}`)
-    })
-    unsubscribers.push(unsubDataReceived)
-
-    // Notification listener
-    const unsubNotification = window.ble.onNotification((characteristicUuid: string, data: number[]) => {
-      const dataStr = data.map(b => b.toString(16).padStart(2, '0')).join(' ')
-      addLog(`Notification from ${characteristicUuid}: ${dataStr}`)
-    })
-    unsubscribers.push(unsubNotification)
-
-    // Data written listener
-    const unsubDataWritten = window.ble.onDataWritten((characteristicUuid: string, data: number[]) => {
-      const dataStr = data.map(b => b.toString(16).padStart(2, '0')).join(' ')
-      addLog(`Data written to ${characteristicUuid}: ${dataStr}`)
-    })
-    unsubscribers.push(unsubDataWritten)
-
-    // Initialize state
-    window.ble.getState().then((state: string) => {
-      setBleState(prev => ({ ...prev, state }))
-    })
-
-    return () => {
-      unsubscribers.forEach(unsub => unsub())
-    }
-  }, [addLog])
 
   const startScan = useCallback(async (timeout?: number) => {
     try {
@@ -270,9 +202,162 @@ export function BLEProvider({ children }: { children: ReactNode }) {
     }
   }, [addLog])
 
+  const getConnectedDevice = useCallback(async () => {
+    try {
+      const result = await window.ble.getConnectedDevice()
+      addLog(`Connected device: ${result}`)
+      console.log(`getConnectedDevice`, result)
+    } catch (error) {
+      addLog(`GetConnectedDevice failed: ${error}`)
+      return { success: false, error: error.message }
+    }
+  }, [addLog])
+
   const clearLogs = useCallback(() => {
     setLogs([])
   }, [])
+
+  useEffect(() => {
+    if (!window.ble) return
+
+    const unsubscribers: (() => void)[] = []
+
+    // State change listener
+    const unsubStateChange = window.ble.onStateChange((state: string) => {
+      setBleState(prev => ({ ...prev, state }))
+      addLog(`BLE state changed: ${state}`)
+    })
+    unsubscribers.push(unsubStateChange)
+
+    // Device discovered listener
+    const unsubDeviceDiscovered = window.ble.onDeviceDiscovered((device: BLEDevice) => {
+      setBleState(prev => ({
+        ...prev,
+        devices: [...prev.devices.filter(d => d.id !== device.id), device]
+      }))
+      addLog(`Device discovered: ${device.name} (${device.id})`)
+    })
+    unsubscribers.push(unsubDeviceDiscovered)
+
+    // Scan start listener
+    const unsubScanStart = window.ble.onScanStart(() => {
+      setBleState(prev => ({ ...prev, isScanning: true, devices: [] }))
+      addLog('Scan started')
+    })
+    unsubscribers.push(unsubScanStart)
+
+    // Scan stop listener
+    const unsubScanStop = window.ble.onScanStop(() => {
+      setBleState(prev => ({ ...prev, isScanning: false }))
+      addLog('Scan stopped')
+    })
+    unsubscribers.push(unsubScanStop)
+
+    // Device connected listener
+    const unsubDeviceConnected = window.ble.onDeviceConnected((deviceId: string) => {
+      setBleState(prev => ({ ...prev, connectedDevice: deviceId, isConnected: true, services: [] }))
+      addLog(`Connected to device: ${deviceId}`)
+    })
+    unsubscribers.push(unsubDeviceConnected)
+
+    // Device disconnected listener
+    const unsubDeviceDisconnected = window.ble.onDeviceDisconnected((deviceId: string) => {
+      setBleState(prev => ({
+        ...prev,
+        connectedDevice: null,
+        isConnected: false,
+        services: []
+      }))
+      addLog(`Disconnected from device: ${deviceId}`)
+    })
+    unsubscribers.push(unsubDeviceDisconnected)
+
+    // Main 프로세스에서 파싱된 데이터를 받는 리스너
+    const unsubDeviceDataParsed = window.ble.onDeviceDataParsed(({ characteristicUuid, parsedData }: { characteristicUuid: string, parsedData: ParsedData }) => {
+      console.log(1111)
+
+      // 배터리 잔량 업데이트 처리
+      if (parsedData.type === 'batteryLevelUpdate' && bleState.connectedDevice) {
+        const newBatteryLevel = parsedData.payload.batteryLevel;
+        const currBatteryLevel = bleState.devices?.[0]?.batteryLevel;
+
+        console.log(newBatteryLevel, currBatteryLevel);
+
+        if (newBatteryLevel !== currBatteryLevel) {
+          addLog(`Updating battery level for ${bleState.connectedDevice} to ${newBatteryLevel}%`);
+          setBleState(prev => ({
+            ...prev,
+            // devices 배열에서 현재 연결된 기기를 찾아 batteryLevel을 업데이트
+            devices: prev.devices.map(device =>
+              device.id === prev.connectedDevice
+                ? {...device, batteryLevel: newBatteryLevel}
+                : device
+            ),
+            lastParsedData: parsedData,
+          }));
+        }
+
+      } else {
+        // 다른 종류의 데이터는 lastParsedData에만 저장
+        setBleState(prev => ({ ...prev, lastParsedData: parsedData }));
+      }
+    });
+    unsubscribers.push(unsubDeviceDataParsed);
+
+
+    // Data written listener
+    const unsubDataWritten = window.ble.onDataWritten((characteristicUuid: string, data: number[]) => {
+      const dataStr = data.map(b => b.toString(16).padStart(2, '0')).join(' ')
+      addLog(`Data written to ${characteristicUuid}: ${dataStr}`)
+    })
+    unsubscribers.push(unsubDataWritten)
+
+    // Initialize state
+    window.ble.getState().then((state: string) => {
+      setBleState(prev => ({ ...prev, state }))
+    })
+
+    return () => {
+      unsubscribers.forEach(unsub => unsub())
+    }
+  }, [addLog])
+
+  // Auto discover services on connect
+  useEffect(() => {
+    // 1. When connection is established, discover services
+    if (bleState.isConnected && bleState.connectedDevice && bleState.services.length === 0) {
+      addLog('Device connected. Discovering services...');
+      discoverServices();
+    }
+  }, [bleState.isConnected, bleState.connectedDevice, bleState.services.length, discoverServices, addLog]);
+
+  // Auto subscribe to notifications when services are discovered
+  useEffect(() => {
+    if (bleState.services.length > 0) {
+      addLog('Services discovered. Checking for notification characteristic...');
+      let found = false;
+      for (const service of bleState.services) {
+        for (const char of service.characteristics) {
+          if (char.uuid === UUID_CHARACTERISTIC_CUSTOM_TOTAL_NOTIFY_DATA) {
+            found = true;
+            addLog(`Found notification characteristic: ${char.uuid}. Subscribing...`);
+            subscribeNotifications(char.uuid);
+            break;
+          }
+        }
+        if (found) break;
+      }
+      if (!found) {
+        addLog('Target notification characteristic not found.');
+
+      }
+    }
+  }, [bleState.services, subscribeNotifications, addLog]);
+
+  // 커맨드 전송 객체 생성
+  const commandSender = useMemo(() => {
+      return createCommandSender(writeData, addLog);
+  }, [writeData, addLog]);
 
   const value: BLEContextType = {
     bleState,
@@ -286,7 +371,9 @@ export function BLEProvider({ children }: { children: ReactNode }) {
     readData,
     subscribeNotifications,
     unsubscribeNotifications,
+    getConnectedDevice,
     clearLogs,
+    commandSender, // 컨텍스트 value에 추가
   }
 
   return <BLEContext.Provider value={value}>{children}</BLEContext.Provider>

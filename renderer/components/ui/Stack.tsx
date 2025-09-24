@@ -83,6 +83,6 @@ export const VStack: React.FC<StackLayoutProps> = (props) => {
 /**
  * 수평 정렬을 위한 컨테이너 컴포넌트 (flex-direction: row)
  */
-export const HStack: React.FC<StackLayoutProps> = (props) => {
-  return <Stack direction="row" {...props} />;
+export const HStack: React.FC<StackLayoutProps> = ({ alignItems = 'center', ...props}) => {
+  return <Stack direction="row" alignItems={alignItems} {...props} />;
 };
