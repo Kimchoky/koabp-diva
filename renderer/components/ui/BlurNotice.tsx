@@ -1,6 +1,6 @@
 import React from 'react'
 import { X, AlertCircle, CheckCircle, Info, AlertTriangle } from 'lucide-react'
-import { DialogOptions } from '../../hooks/useDialog'
+import { DialogOptions } from '../../contexts/DialogContext'
 
 interface DialogProps {
   isOpen: boolean

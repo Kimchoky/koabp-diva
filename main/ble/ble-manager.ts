@@ -1,6 +1,6 @@
 import noble from '@abandonware/noble'
 import { EventEmitter } from 'events'
-import { parseData } from './ble-protocol';
+import { parseData } from './ble-protocol'
 
 export interface BLEDevice {
   id: string
