@@ -75,32 +75,27 @@ export default function DeviceScanner() {
       <p className="text-lg">연결된 기기</p>
       <VStack appearance="outlined">
 
-        {bleState.connectedDevice ? (
-          bleState.devices.map((device, i) => (
-            <HStack key={i} justifyContent={"space-between"}>
-              <VStack>
-                <div className="font-medium">{device.name}</div>
-                <HStack gap={5}>
-                  <div className="text-sm text-gray-500">배터리: <BatteryIndicator level={device.batteryLevel}/></div>
-                  <Divider vertical />
-                  <div className="text-sm text-gray-500">신호세기(RSSI): {device.rssi}dBm</div>
-                </HStack>
+        {bleState.connectedDeviceInfo ? (
+          <HStack key={bleState.connectedDeviceInfo.id} justifyContent={"space-between"}>
+            <VStack>
+              <div className="font-medium">{bleState.connectedDeviceInfo.name}</div>
+              <HStack gap={5}>
+                <div className="text-sm text-gray-500">배터리: <BatteryIndicator level={bleState.connectedDeviceInfo.batteryLevel}/></div>
+                <Divider vertical />
+                <div className="text-sm text-gray-500">신호세기(RSSI): {bleState.connectedDeviceInfo.rssi}dBm</div>
+              </HStack>
+            </VStack>
 
-              </VStack>
-
-
-
-              <Button
-                onClick={handleDisconnect}
-                size="sm"
-                icon="BluetoothOff"
-                mode="error"
-                appearance="outlined"
-              >
-                연결끊기
-              </Button>
-            </HStack>
-          ))
+            <Button
+              onClick={handleDisconnect}
+              size="sm"
+              icon="BluetoothOff"
+              mode="error"
+              appearance="outlined"
+            >
+              연결끊기
+            </Button>
+          </HStack>
         ) : (
           <div className="text-gray-500">연결된 기기 없음</div>
         )
@@ -137,10 +132,10 @@ export default function DeviceScanner() {
 
           <div>검색된 기기 목록</div>
 
-          {bleState.devices.length > 0 ? (
+          {bleState.scannedDevices.length > 0 ? (
             <div className="mt-4">
               <ul className="border rounded divide-y">
-                {bleState.devices.map((device) => (
+                {bleState.scannedDevices.map((device) => (
                   <li
                     key={device.id}
                     className="p-3 flex items-center justify-between hover:bg-gray-400/30"

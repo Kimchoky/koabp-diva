@@ -159,7 +159,7 @@ export default function BleTest() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Discovered Devices ({bleState.devices.length})
+                    Discovered Devices ({bleState.scannedDevices.length})
                   </label>
                   <select
                     value={selectedDevice}
@@ -167,7 +167,7 @@ export default function BleTest() {
                     className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
                   >
                     <option value="">Select a device...</option>
-                    {bleState.devices.map((device) => (
+                    {bleState.scannedDevices.map((device) => (
                       <option key={device.id} value={device.id}>
                         {device.name} ({device.id}) - RSSI: {device.rssi}dBm
                       </option>

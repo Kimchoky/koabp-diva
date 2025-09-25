@@ -41,6 +41,7 @@ let bleManager: BLEManager
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
     },
+    icon: path.join(__dirname, 'resources/icon.png'),
   })
 
   // Initialize BLE Manager
