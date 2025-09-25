@@ -1,6 +1,8 @@
 import React, {createContext, ReactNode, useCallback, useContext, useState} from 'react'
 import Dialog from '../components/ui/BlurNotice'
 
+// TODO: light mode theming
+
 export interface DialogOptions {
   title?: string
   message?: string

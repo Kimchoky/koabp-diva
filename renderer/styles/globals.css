@@ -31,10 +31,13 @@
 @layer utilities {
 
   .stack-surface {
-    @apply bg-[--color-surface-light] dark:bg-[--color-surface-dark] rounded-lg shadow-sm p-4;
+    @apply rounded-lg shadow-sm p-4
+           bg-[--color-surface-light] dark:bg-[--color-surface-dark]
+           text-[--color-surface-dark] dark:text-[--color-surface-light];
   }
   .stack-outlined {
-    @apply border border-[--color-border-light] dark:border-[--color-border-dark] rounded-lg p-4;
+    @apply border rounded-lg p-4
+           border-[--color-border-light] dark:border-[--color-border-dark];
   }
 
 }

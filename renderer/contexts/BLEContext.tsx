@@ -34,8 +34,7 @@ export interface BLEState {
   state: string
   isScanning: boolean
   scannedDevices: BLEDevice[]
-  connectedDevice: string | null
-  connectedDeviceInfo: BLEDevice | null
+  connectedDevice: BLEDevice | null
   services: BLEService[]
   isConnected: boolean
   lastParsedData: ParsedData | null // 파싱된 데이터를 저장할 상태
@@ -54,7 +53,6 @@ interface BLEContextType {
   readData: (characteristicUuid: string) => Promise<{ success: boolean; error?: string; data?: number[] }>
   subscribeNotifications: (characteristicUuid: string) => Promise<{ success: boolean; error?: string }>
   unsubscribeNotifications: (characteristicUuid: string) => Promise<{ success: boolean; error?: string }>
-  getConnectedDevice: () => Promise<{ success: boolean; error?: string }>
   clearLogs: () => void
   commandSender: ReturnType<typeof createCommandSender> | null
 }
@@ -67,7 +65,6 @@ export function BLEProvider({ children }: { children: ReactNode }) {
     isScanning: false,
     scannedDevices: [],
     connectedDevice: null,
-    connectedDeviceInfo: null,
     services: [],
     isConnected: false,
     lastParsedData: null, // 초기값 설정
@@ -257,15 +254,36 @@ export function BLEProvider({ children }: { children: ReactNode }) {
 
     // Device connected listener
     const unsubDeviceConnected = window.ble.onDeviceConnected((deviceId: string) => {
+      console.log('Device connected event received:', deviceId);
       setBleState(prev => {
+        console.log('Current scanned devices:', prev.scannedDevices.map(d => d.id));
         // Find device info from scanned devices
-        const deviceInfo = prev.scannedDevices.find(d => d.id === deviceId) || null;
-        return {
-          ...prev,
-          connectedDevice: deviceId,
-          connectedDeviceInfo: deviceInfo,
-          isConnected: true,
-          services: []
+        const deviceInfo = prev.scannedDevices.find(d => d.id === deviceId);
+        if (deviceInfo) {
+          console.log('Found device info:', deviceInfo);
+          const newState = {
+            ...prev,
+            connectedDevice: {...deviceInfo},
+            isConnected: true,
+            services: []
+          };
+          console.log('Setting new connected device:', newState.connectedDevice);
+          return newState;
+        } else {
+          console.log('Device not found in scanned devices, creating default');
+          // 스캔된 기기 목록에 없는 경우 기본 정보로 생성
+          return {
+            ...prev,
+            connectedDevice: {
+              id: deviceId,
+              name: 'Unknown Device',
+              rssi: 0,
+              advertisement: null,
+              batteryLevel: undefined
+            },
+            isConnected: true,
+            services: []
+          }
         }
       })
       addLog(`Connected to device: ${deviceId}`)
@@ -277,7 +295,6 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       setBleState(prev => ({
         ...prev,
         connectedDevice: null,
-        connectedDeviceInfo: null,
         isConnected: false,
         services: []
       }))
@@ -287,31 +304,33 @@ export function BLEProvider({ children }: { children: ReactNode }) {
 
     // Main 프로세스에서 파싱된 데이터를 받는 리스너
     const unsubDeviceDataParsed = window.ble.onDeviceDataParsed(({ characteristicUuid, parsedData }: { characteristicUuid: string, parsedData: ParsedData }) => {
-      console.log(1111)
 
       // 배터리 잔량 업데이트 처리
-      if (parsedData.type === 'batteryLevelUpdate' && bleState.connectedDevice) {
+      if (parsedData.type === 'firmwareStatus') {
         const newBatteryLevel = parsedData.payload.batteryLevel;
-        const currBatteryLevel = bleState.connectedDeviceInfo?.batteryLevel;
 
-        console.log(newBatteryLevel, currBatteryLevel);
+        setBleState(prev => {
+          // prev를 통해 최신 상태에 접근
+          if (!prev.connectedDevice) {
+            return { ...prev, lastParsedData: parsedData };
+          }
 
-        if (newBatteryLevel !== currBatteryLevel) {
-          addLog(`Updating battery level for ${bleState.connectedDevice} to ${newBatteryLevel}%`);
-          setBleState(prev => ({
-            ...prev,
-            // 연결된 기기 정보에서 배터리 레벨 업데이트
-            connectedDeviceInfo: prev.connectedDeviceInfo ?
-              {...prev.connectedDeviceInfo, batteryLevel: newBatteryLevel} : null,
-            // scanned devices에서도 같은 기기가 있다면 업데이트
-            scannedDevices: prev.scannedDevices.map(device =>
-              device.id === prev.connectedDevice
-                ? {...device, batteryLevel: newBatteryLevel}
-                : device
-            ),
-            lastParsedData: parsedData,
-          }));
-        }
+          const currBatteryLevel = prev.connectedDevice.batteryLevel;
+          if (!currBatteryLevel || (newBatteryLevel !== currBatteryLevel)) {
+            addLog(`Updating battery level for ${prev.connectedDevice.name} to ${newBatteryLevel}%`);
+            return {
+              ...prev,
+              // 연결된 기기 정보에서 배터리 레벨 업데이트
+              connectedDevice: {
+                ...prev.connectedDevice,
+                batteryLevel: newBatteryLevel
+              },
+              lastParsedData: parsedData,
+            };
+          }
+
+          return { ...prev, lastParsedData: parsedData };
+        });
 
       } else {
         // 다른 종류의 데이터는 lastParsedData에만 저장
@@ -387,7 +406,6 @@ export function BLEProvider({ children }: { children: ReactNode }) {
     readData,
     subscribeNotifications,
     unsubscribeNotifications,
-    getConnectedDevice,
     clearLogs,
     commandSender, // 컨텍스트 value에 추가
   }

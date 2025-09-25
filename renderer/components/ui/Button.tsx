@@ -53,7 +53,7 @@ export default function Button({
       warning: 'border border-warning text-warning bg-transparent hover:bg-warning/25',
       error: 'border border-error text-error bg-transparent hover:bg-error/25',
       info: 'border border-info text-info bg-transparent hover:bg-info/25',
-      default: 'border bg-transparent border-gray-700 hover:bg-slate-100 border-gray-200 hover:bg-gray-200/25',
+      default: 'border bg-transparent border-gray-700 hover:bg-slate-100 dark:border-gray-200 dark:hover:bg-gray-200/25',
     }
   }
 

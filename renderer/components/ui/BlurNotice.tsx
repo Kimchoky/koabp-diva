@@ -76,8 +76,10 @@ export default function Dialog({ isOpen, options, onConfirm, onCancel, onClose }
 
           {/* Message */}
           {options.message && (
-            <div className="text-gray-200 text-sm leading-relaxed">
-              {options.message}
+            <div>
+              {options.message.split('\n').map((line, i) => (
+                <p key={i} className="text-gray-200 text-sm leading-relaxed ">{line}</p>
+              ))}
             </div>
           )}
 

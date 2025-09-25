@@ -21,8 +21,8 @@ const alignItemsMap = {
 
 const appearanceMap = {
   default: '',
-  surface: 'stack-surface rounded-lg shadow-sm p-4',
-  outlined: 'stack-outlined rounded-lg p-4',
+  surface: 'stack-surface',
+  outlined: 'stack-outlined',
 };
 
 // 내부적으로 사용될 기본 Stack 컴포넌트의 Props
@@ -60,8 +60,8 @@ const Stack: React.FC<StackProps> = ({
     className
   );
 
-  // gap 스타일을 인라인 스타일로 적용
-  const style = gap ? { gap: `${gap}px`, ...props.style } : props.style;
+  // gap 스타일을 인라인 스타일로 적용 (Tailwind 단위: 1 = 0.25rem)
+  const style = gap ? { gap: `${gap * 0.25}rem`, ...props.style } : props.style;
 
   return (
     <div className={classes} {...props} style={style}>

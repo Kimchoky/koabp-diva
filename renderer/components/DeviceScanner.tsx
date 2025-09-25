@@ -1,6 +1,6 @@
 import Button from "./ui/Button";
 import {useBLE} from "../contexts/BLEContext";
-import React, {useState} from "react";
+import React, {useCallback, useState, useEffect} from "react";
 import {useDialog} from "../contexts/DialogContext";
 import {HStack, VStack} from "./ui/Stack";
 import {LucideBluetoothOff} from "lucide-react";
@@ -9,15 +9,27 @@ import BatteryIndicator from "./ui/BatteryIndicator";
 
 export default function DeviceScanner() {
 
-  const {bleState, startScan, stopScan, connect, disconnect, discoverServices, getConnectedDevice} = useBLE();
+  const {bleState, startScan, stopScan, connect, disconnect, discoverServices} = useBLE();
 
   const dialog = useDialog();
 
-  const [selectedCharacteristic, setSelectedCharacteristic] = useState<string>('')
-  const [writeDataInput, setWriteDataInput] = useState<string>('')
-  const [subscribedCharacteristics, setSubscribedCharacteristics] = useState<Set<string>>(new Set())
-
   const [isConnecting, setIsConnecting] = useState(false);
+  const [showCharacteristics, setShowCharacteristics] = useState(false);
+  const [disconnectResolver, setDisconnectResolver] = useState<((value: any) => void) | null>(null);
+
+  // 디버깅용: connectedDevice 상태 변화 추적
+  useEffect(() => {
+    console.log('DeviceScanner: connectedDevice changed:', bleState.connectedDevice?.id, bleState.connectedDevice?.name);
+  }, [bleState.connectedDevice]);
+
+  // 연결 해제 완료 감지
+  useEffect(() => {
+    if (!bleState.isConnected && !bleState.connectedDevice && disconnectResolver) {
+      console.log('Disconnect completed, resolving promise');
+      disconnectResolver(null);
+      setDisconnectResolver(null);
+    }
+  }, [bleState.isConnected, bleState.connectedDevice, disconnectResolver]);
 
 
   const handleScanStart = async () => {
@@ -38,20 +50,49 @@ export default function DeviceScanner() {
 
   const handleConnect = async (deviceId: string) => {
 
+    console.log(deviceId, bleState.isConnected)
+    if (bleState.isConnected) {
+      dialog.showConfirm('기기 연결', '연결된 기기를 해제하고 선택한 기기로 연결하시겠습니까?', async () => {
+        // 연결 해제를 기다리지 않고 바로 새 기기 연결
+        connectToDevice(deviceId);
+      });
+    }
+    else {
+      connectToDevice(deviceId);
+    }
+  }
+
+  const connectToDevice = async (deviceId: string) => {
     await handleScanStop();
     setIsConnecting(true);
 
     try {
+      // 기존 연결이 있다면 먼저 해제하고 완료까지 대기
+      if (bleState.isConnected) {
+        console.log('Disconnecting current device before connecting to new one');
+
+        // Promise를 생성하고 resolver를 저장
+        const disconnectPromise = new Promise((resolve) => {
+          setDisconnectResolver(() => resolve);
+        });
+
+        await disconnect();
+
+        // 연결 해제 완료까지 대기 (useEffect에서 resolve됨)
+        await disconnectPromise;
+      }
 
       const connectPromise = connect(deviceId);
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Connection timed out after 3 seconds')), 3000)
       );
-      await Promise.race([connectPromise, timeoutPromise]);
+      const result = await Promise.race([connectPromise, timeoutPromise]);
+      if (!result.success) {
+        dialog.showError('연결 실패', result.error);
+      }
 
     } catch (error) {
-      dialog.showError('', '기기에 연결하지 못하였습니다.')
-      console.error('C!onnection failed:', error)
+      dialog.showError('연결 실패', '기기 스캔을 재시도해 보시기 바랍니다.')
     } finally {
       setIsConnecting(false);
     }
@@ -69,33 +110,106 @@ export default function DeviceScanner() {
     await disconnect();
   }
 
+  const getRssiColor = useCallback((rssi: number) => {
+    // RSSI 신호 강도에 따른 색상 분류
+    // -30 이상: 매우 강함 (초록)
+    // -50 이상: 강함 (초록)
+    // -70 이상: 보통 (노랑)
+    // -85 이상: 약함 (주황)
+    // -85 미만: 매우 약함 (빨강)
+
+    if (rssi >= -50) {
+      return "text-green-500 dark:text-green-400"
+    } else if (rssi >= -70) {
+      return "text-yellow-500 dark:text-yellow-400"
+    } else if (rssi >= -85) {
+      return "text-orange-500 dark:text-orange-400"
+    } else {
+      return "text-red-500 dark:text-red-400"
+    }
+  }, [])
+
   return (
-    <VStack className="p-4" gap={10}>
+    <VStack gap={2}>
 
-      <p className="text-lg">연결된 기기</p>
-      <VStack appearance="outlined">
+      <h2 className="text-lg">연결된 기기</h2>
+      <VStack appearance="outlined" className="!border-purple-500 dark:!border-amber-500">
+        {bleState.connectedDevice ? (
+          <VStack>
+            <VStack className={"bg"} gap={2}>
 
-        {bleState.connectedDeviceInfo ? (
-          <HStack key={bleState.connectedDeviceInfo.id} justifyContent={"space-between"}>
-            <VStack>
-              <div className="font-medium">{bleState.connectedDeviceInfo.name}</div>
-              <HStack gap={5}>
-                <div className="text-sm text-gray-500">배터리: <BatteryIndicator level={bleState.connectedDeviceInfo.batteryLevel}/></div>
-                <Divider vertical />
-                <div className="text-sm text-gray-500">신호세기(RSSI): {bleState.connectedDeviceInfo.rssi}dBm</div>
+              {/* info */}
+              <HStack gap={2} justifyContent={"space-between"}>
+                <span className="font-medium">{bleState.connectedDevice.name}</span>
+                <HStack gap={2} className="text-sm text-gray-500 dark:text-gray-400">
+                  배터리:<BatteryIndicator level={bleState.connectedDevice.batteryLevel}/>
+                </HStack>
               </HStack>
+
+              {/* buttons */}
+              <HStack justifyContent={"flex-end"} gap={2}>
+                <div className="relative">
+                  <Button
+                    onClick={() => setShowCharacteristics(!showCharacteristics)}
+                    size="sm"
+                    icon={showCharacteristics ? "X" : "List"}
+                    appearance="outlined"
+                  >
+                    {showCharacteristics ? "닫기" : "서비스/특성"}
+                  </Button>
+
+                  {/* 팝업 박스 */}
+                  {showCharacteristics && (
+                    <VStack appearance="surface"
+                      className="absolute left-0 top-full mt-2 w-[500px] max-h-150 shadow-lg z-50 overflow-y-auto border border-gray-500">
+                      <h3>서비스 / 특성</h3>
+                      <div className="p-4">
+                        <div className="text-sm">
+                          {bleState.services.length > 0 ? (
+                            bleState.services.map((service) => (
+                              <div key={service.uuid} className="mb-4">
+                                {/* 서비스 */}
+                                <HStack gap={2} className="mb-2">
+                                  <span className="rounded-lg px-2 bg-blue-700 dark:bg-blue-300 text-white dark:text-black">Service</span>
+                                  <span className="text-blue-700 dark:text-blue-300">{service.uuid}</span>
+                                </HStack>
+                                {/* 특성들 */}
+                                {service.characteristics.map((char) => (
+                                  <VStack key={char.uuid} gap={1}
+                                       className="ml-6 mb-1 p-2 bg-gray-50 dark:bg-gray-700 rounded border-l-2 border-gray-700 dark:border-gray-300">
+                                    <HStack gap={2}>
+                                      <span className="rounded-lg px-1 bg-green-700 dark:bg-green-300 text-white dark:text-black">Characteristic</span>
+                                      <span className="text-green-700 dark:text-green-300">{char.uuid}</span>
+                                    </HStack>
+                                    <div className="text-xs text-gray-600 dark:text-gray-400 ml-4">
+                                      [{char.properties.join(', ')}]
+                                    </div>
+                                  </VStack>
+                                ))}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-gray-500">서비스를 발견하지 못했습니다.</div>
+                          )}
+                        </div>
+                      </div>
+                    </VStack>
+                  )}
+                </div>
+                <Button
+                  onClick={handleDisconnect}
+                  size="sm"
+                  icon="BluetoothOff"
+                  mode="error"
+                  appearance="outlined"
+                >
+                  연결끊기
+                </Button>
+              </HStack>
+
             </VStack>
 
-            <Button
-              onClick={handleDisconnect}
-              size="sm"
-              icon="BluetoothOff"
-              mode="error"
-              appearance="outlined"
-            >
-              연결끊기
-            </Button>
-          </HStack>
+          </VStack>
         ) : (
           <div className="text-gray-500">연결된 기기 없음</div>
         )
@@ -104,9 +218,9 @@ export default function DeviceScanner() {
 
       <Divider/>
 
-      <VStack gap={10}>
+      <VStack gap={4}>
 
-        <HStack gap={12}>
+        <HStack gap={4}>
           <Button
             onClick={handleScanStart}
             disabled={bleState.isScanning || isConnecting}
@@ -130,11 +244,10 @@ export default function DeviceScanner() {
 
         <VStack appearance="outlined">
 
-          <div>검색된 기기 목록</div>
-
           {bleState.scannedDevices.length > 0 ? (
-            <div className="mt-4">
-              <ul className="border rounded divide-y">
+            <div>
+              <h3>검색된 기기 목록</h3>
+              <ul className="mt-2 border rounded divide-y">
                 {bleState.scannedDevices.map((device) => (
                   <li
                     key={device.id}
@@ -142,51 +255,32 @@ export default function DeviceScanner() {
                   >
                     <div>
                       <div className="font-medium">{device.name}</div>
-                      <div className="text-sm text-gray-500">
-                        ID: {device.id} | RSSI: {device.rssi}dBm
-                      </div>
+                      <HStack className="text-sm text-gray-500" gap={1}>
+                        <span>RSSI:</span>
+                        <span className={getRssiColor(device.rssi)}>{device.rssi}</span>
+                        <span>dBm</span>
+                      </HStack>
                     </div>
                     <Button
                       onClick={() => handleConnect(device.id)}
                       size="sm"
                       icon="Bluetooth"
-                      disabled={(bleState.isConnected && bleState.connectedDevice === device.id) || isConnecting}
+                      disabled={(bleState.isConnected && bleState.connectedDevice.id === device.id) || isConnecting}
                     >
-                      {bleState.isConnected && bleState.connectedDevice === device.id ? '연결됨' :
+                      {bleState.isConnected && bleState.connectedDevice.id === device.id ? '연결됨' :
                         isConnecting ? '연결중' : '연결'}
                     </Button>
                   </li>
                 ))}
               </ul>
 
-              {bleState.isConnected && (
-                <div className="mt-4">
-                  <Button onClick={handleDiscoverServices} size="sm" appearance="outlined" icon="Search">
-                    서비스 검색
-                  </Button>
-                </div>
-              )}
             </div>
           ) : (
-            <div className="mt-4 text-gray-500">
+            <div className="text-gray-500">
               {bleState.isScanning ? '스캔 중...' : '스캔을 시작하여 기기를 찾으세요'}
             </div>
           )}
 
-          {bleState.services.length > 0 && (
-            <div className="mt-4">
-              <div className="font-semibold">발견된 서비스 및 특성:</div>
-              <ul className="mt-2">
-                {bleState.services.map((service) =>
-                  service.characteristics.map((char) => (
-                    <li key={char.uuid} className="p-2 border-b">
-                      {char.uuid} [{char.properties.join(', ')}]
-                    </li>
-                  ))
-                )}
-              </ul>
-            </div>
-          )}
         </VStack>
       </VStack>
     </VStack>

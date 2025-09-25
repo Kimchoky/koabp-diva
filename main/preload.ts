@@ -74,7 +74,7 @@ const bleHandler = {
 
   onDeviceDataParsed: (callback: (args: { characteristicUuid: string, parsedData: any }) => void) => {
     const subscription = (_event: IpcRendererEvent, args: { characteristicUuid: string, parsedData: any }) => {
-      console.log('--- PRELOAD: Received ble-device-data-parsed ---', args);
+      // console.log('--- PRELOAD: Received ble-device-data-parsed ---', args);
       callback(args)
     }
     ipcRenderer.on('ble-device-data-parsed', subscription)

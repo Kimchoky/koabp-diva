@@ -27,7 +27,7 @@ export function setupBLEEventHandlers(bleManager: BLEManager, mainWindow: Browse
   })
 
   bleManager.on('deviceDataParsed', ({ characteristicUuid, parsedData }) => {
-    console.log('--- BACKGROUND: Forwarding deviceDataParsed to renderer ---', parsedData);
+    // console.log('--- BACKGROUND: Forwarding deviceDataParsed to renderer ---', parsedData);
     mainWindow.webContents.send('ble-device-data-parsed', { characteristicUuid, parsedData })
   })
 
