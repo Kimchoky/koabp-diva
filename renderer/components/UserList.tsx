@@ -1,10 +1,12 @@
 import {HStack, VStack} from "./ui/Stack";
 import {useRouter} from "next/router";
+import {useAuth} from "../contexts/AuthContext";
 
 
 export default function UserList() {
 
   const router = useRouter();
+  const auth = useAuth();
 
   // TODO: Link API
   const users = [
@@ -25,6 +27,9 @@ export default function UserList() {
 
   const handleLogin = (user) => {
     // TODO: auth context
+
+    auth.login(user)
+
 
 
     router.replace('/verifying');

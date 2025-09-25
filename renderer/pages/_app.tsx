@@ -8,22 +8,25 @@ import '../styles/globals.css'
 import {VStack} from "../components/ui/Stack";
 import LogWindow from "../components/ui/LogWindow";
 import ThemeToggle from "../components/ThemeToggle";
+import {AuditProvider} from "../contexts/AuditContext";
 
 function App({Component, pageProps}: AppProps) {
   return (
-    <AuthProvider>
-      <BLEProvider>
-        <DialogProvider>
+    <AuditProvider>
+      <AuthProvider>
+        <BLEProvider>
+          <DialogProvider>
 
-          <div className="min-h-screen relative">
-            <Component {...pageProps} />
-            <ThemeToggle/>
-            <LogWindow />
-          </div>
+            <div className="min-h-screen relative p-4">
+              <Component {...pageProps} />
+              <ThemeToggle/>
+              <LogWindow/>
+            </div>
 
-        </DialogProvider>
-      </BLEProvider>
-    </AuthProvider>
+          </DialogProvider>
+        </BLEProvider>
+      </AuthProvider>
+    </AuditProvider>
   )
 }
 

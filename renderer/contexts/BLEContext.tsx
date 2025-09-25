@@ -40,19 +40,21 @@ export interface BLEState {
   lastParsedData: ParsedData | null // 파싱된 데이터를 저장할 상태
 }
 
+export type BleResultType = { success: boolean; error?: string }
+
 // commandSender를 포함하도록 컨텍스트 타입 업데이트
 interface BLEContextType {
   bleState: BLEState
   logs: string[]
-  startScan: (timeout?: number) => Promise<{ success: boolean; error?: string }>
-  stopScan: () => Promise<{ success: boolean; error?: string }>
-  connect: (deviceId: string) => Promise<{ success: boolean; error?: string }>
-  disconnect: () => Promise<{ success: boolean; error?: string }>
+  startScan: (timeout?: number) => Promise<BleResultType>
+  stopScan: () => Promise<BleResultType>
+  connect: (deviceId: string) => Promise<BleResultType>
+  disconnect: () => Promise<BleResultType>
   discoverServices: () => Promise<{ success: boolean; error?: string; data?: BLEService[] }>
-  writeData: (characteristicUuid: string, data: number[]) => Promise<{ success: boolean; error?: string }>
+  writeData: (characteristicUuid: string, data: number[]) => Promise<BleResultType>
   readData: (characteristicUuid: string) => Promise<{ success: boolean; error?: string; data?: number[] }>
-  subscribeNotifications: (characteristicUuid: string) => Promise<{ success: boolean; error?: string }>
-  unsubscribeNotifications: (characteristicUuid: string) => Promise<{ success: boolean; error?: string }>
+  subscribeNotifications: (characteristicUuid: string) => Promise<BleResultType>
+  unsubscribeNotifications: (characteristicUuid: string) => Promise<BleResultType>
   clearLogs: () => void
   commandSender: ReturnType<typeof createCommandSender> | null
 }

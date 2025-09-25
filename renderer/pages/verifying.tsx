@@ -3,36 +3,39 @@ import DeviceScanner from "../components/DeviceScanner";
 import BleStateIndicator from "../components/BleStateIndicator";
 import React from "react";
 import {HStack, VStack} from "../components/ui/Stack";
+import Divider from "../components/ui/Divider";
+import {useAuth} from "../contexts/AuthContext";
+import Header from "../components/Header";
 
 
 export default function VerifyingPage() {
 
+  const auth = useAuth();
+
+
   return (
-    <VStack>
+    <VStack gap={2}>
 
       {/* Header */}
 
-      <div className="flex items-baseline gap-2">
-        {/*<Image src={'/images/koabp-diva-logo-white.png'} alt={'logo'} width={128} height={50} />*/}
-        <div className="text-primary">KoaBP DIVA</div>
-        <div>Version: {"1.0.0"}</div>
-        <BleStateIndicator />
-      </div>
+      <Header />
 
 
       {/* Content */}
-      <HStack gap={10}>
+      <HStack gap={3}>
 
         {/* Content-Left */}
-        <div className={'w-[400px]'}>
+        <div className="w-[350px] py-4">
           <DeviceScanner />
         </div>
 
+        <Divider vertical />
+
         {/* Content-Right */}
-        <div className={'flex-grow'}>
-          <VStack className="bg-amber-50">
-            CONTENTS
-          </VStack>
+        <div className="flex-grow py-4">
+
+
+
         </div>
 
       </HStack>

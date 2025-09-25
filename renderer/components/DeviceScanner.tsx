@@ -1,11 +1,12 @@
 import Button from "./ui/Button";
-import {useBLE} from "../contexts/BLEContext";
+import {BleResultType, useBLE} from "../contexts/BLEContext";
 import React, {useCallback, useState, useEffect} from "react";
 import {useDialog} from "../contexts/DialogContext";
 import {HStack, VStack} from "./ui/Stack";
 import {LucideBluetoothOff} from "lucide-react";
 import Divider from "./ui/Divider";
 import BatteryIndicator from "./ui/BatteryIndicator";
+import ActivityIndicator from "./ui/ActivityIndicator";
 
 export default function DeviceScanner() {
 
@@ -83,8 +84,9 @@ export default function DeviceScanner() {
       }
 
       const connectPromise = connect(deviceId);
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Connection timed out after 3 seconds')), 3000)
+      const timeoutPromise = new Promise<BleResultType>((_, reject) =>
+        setTimeout(() => reject({ success: false, error: '연결하는데 너무 오래 걸립니다. (5초 경과)'}), 5000)
+        // reject는 바깥 error로 날아감
       );
       const result = await Promise.race([connectPromise, timeoutPromise]);
       if (!result.success) {
@@ -92,7 +94,7 @@ export default function DeviceScanner() {
       }
 
     } catch (error) {
-      dialog.showError('연결 실패', '기기 스캔을 재시도해 보시기 바랍니다.')
+      dialog.showError('연결 실패', (error?.error ?? '기기 스캔을 재시도해 보시기 바랍니다.'))
     } finally {
       setIsConnecting(false);
     }
@@ -132,17 +134,21 @@ export default function DeviceScanner() {
   return (
     <VStack gap={2}>
 
-      <h2 className="text-lg">연결된 기기</h2>
-      <VStack appearance="outlined" className="!border-purple-500 dark:!border-amber-500">
+      <h3>연결된 기기</h3>
+      <VStack
+        appearance={`${bleState.isConnected ? 'outlined' : 'default'}`}
+        className={`${bleState.isConnected ? '!border-purple-500 dark:!border-amber-500' : ''}`}
+      >
         {bleState.connectedDevice ? (
           <VStack>
-            <VStack className={"bg"} gap={2}>
+            <VStack className={"bg"} gap={4}>
 
               {/* info */}
-              <HStack gap={2} justifyContent={"space-between"}>
+              <HStack justifyContent={"space-between"}>
                 <span className="font-medium">{bleState.connectedDevice.name}</span>
                 <HStack gap={2} className="text-sm text-gray-500 dark:text-gray-400">
-                  배터리:<BatteryIndicator level={bleState.connectedDevice.batteryLevel}/>
+                  {/*<span>배터리:</span>*/}
+                  <BatteryIndicator level={bleState.connectedDevice.batteryLevel}/>
                 </HStack>
               </HStack>
 
@@ -176,7 +182,7 @@ export default function DeviceScanner() {
                                 {/* 특성들 */}
                                 {service.characteristics.map((char) => (
                                   <VStack key={char.uuid} gap={1}
-                                       className="ml-6 mb-1 p-2 bg-gray-50 dark:bg-gray-700 rounded border-l-2 border-gray-700 dark:border-gray-300">
+                                       className="ml-6 mb-1 p-2 bg-gray-50 dark:bg-gray-700 rounded">
                                     <HStack gap={2}>
                                       <span className="rounded-lg px-1 bg-green-700 dark:bg-green-300 text-white dark:text-black">Characteristic</span>
                                       <span className="text-green-700 dark:text-green-300">{char.uuid}</span>
@@ -220,7 +226,9 @@ export default function DeviceScanner() {
 
       <VStack gap={4}>
 
-        <HStack gap={4}>
+        <HStack gap={4} justifyContent={"space-between"} alignItems={"flex-end"}>
+          <h3>찾은 기기 목록</h3>
+          {!bleState.isScanning ? (
           <Button
             onClick={handleScanStart}
             disabled={bleState.isScanning || isConnecting}
@@ -228,9 +236,9 @@ export default function DeviceScanner() {
             mode="primary"
             icon="Search"
           >
-            {bleState.isScanning ? '스캔 중...' : '기기 스캔'}
+            기기 스캔
           </Button>
-          {bleState.isScanning && (
+          ) : (
             <Button
               onClick={handleScanStop}
               appearance="outlined"
@@ -242,11 +250,17 @@ export default function DeviceScanner() {
           )}
         </HStack>
 
-        <VStack appearance="outlined">
+        <VStack>
+
+          {bleState.isScanning && (
+            <VStack justifyContent={"center"} alignItems={"center"}>
+              <ActivityIndicator.LegacySpinner />
+              <div className="text-sm text-gray-500">기기 찾는 중...</div>
+            </VStack>
+          )}
 
           {bleState.scannedDevices.length > 0 ? (
             <div>
-              <h3>검색된 기기 목록</h3>
               <ul className="mt-2 border rounded divide-y">
                 {bleState.scannedDevices.map((device) => (
                   <li
@@ -277,7 +291,7 @@ export default function DeviceScanner() {
             </div>
           ) : (
             <div className="text-gray-500">
-              {bleState.isScanning ? '스캔 중...' : '스캔을 시작하여 기기를 찾으세요'}
+              {!bleState.isScanning && '스캔을 시작하여 기기를 찾으세요'}
             </div>
           )}
 

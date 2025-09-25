@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+import {User} from "../lib/api-client";
+import {userInfo} from "node:os";
 
 export interface UserInfo {
   name: string
@@ -7,7 +9,7 @@ export interface UserInfo {
 
 interface AuthContextType {
   user: UserInfo | null
-  login: (name: string) => void
+  login: (user: UserInfo) => void
   logout: () => void
   isAuthenticated: boolean
 }
@@ -17,9 +19,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserInfo | null>(null)
 
-  const login = useCallback((name: string) => {
+  const login = useCallback((_user: UserInfo) => {
     setUser({
-      name,
+      ..._user,
       loginTime: new Date()
     })
   }, [])
