@@ -91,19 +91,21 @@ export default function Header() {
       </HStack>
 
 
-      <HStack gap={2} className="">
-        <div className="relative">
-          <span
-            className="cursor-pointer hover:text-blue-600"
+        <HStack className="relative" gap={2}>
+          <Button
+            size="sm"
+            mode="primary"
+            icon="User"
+            appearance="contained"
+            className="cursor-pointer "
             onClick={() => setShowUserMenu(true)}
           >
-            사용자: {auth.user?.name}
-          </span>
+            {auth.user?.name}
+          </Button>
           { showUserMenu &&
-            <UserMenu user={auth?.user} setShowUserMenu={setShowUserMenu} />
+            <UserMenu setShowUserMenu={setShowUserMenu} />
           }
-        </div>
-      </HStack>
+        </HStack>
 
     </HStack>
   )

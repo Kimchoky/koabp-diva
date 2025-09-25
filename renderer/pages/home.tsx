@@ -1,17 +1,7 @@
 import React from 'react'
-import {useAuth} from "../contexts/AuthContext";
 import VerifyingPage from "./verifying";
-import LoginPage from "./login";
 
 export default function HomePage() {
-
-  const auth = useAuth();
-
-  return (
-    auth.user?.name ? (
-      <VerifyingPage />
-    ) : (
-      <LoginPage />
-    )
-  )
+  // _app.tsx에서 인증 처리를 담당하므로 여기서는 단순히 메인 페이지만 렌더링
+  return <VerifyingPage />;
 }
