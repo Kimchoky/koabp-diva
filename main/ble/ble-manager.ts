@@ -2,6 +2,30 @@ import noble from '@abandonware/noble'
 import { EventEmitter } from 'events'
 import { parseData } from './ble-protocol'
 
+/**
+ * Buffer를 16진수 문자열로 변환합니다.
+ */
+function bufferToHex(data: Buffer, format: 'compact' | 'spaced' | 'array' | 'debug' = 'spaced'): string {
+  if (!data || data.length === 0) {
+    return '';
+  }
+
+  const hexBytes = Array.from(data).map(byte => byte.toString(16).padStart(2, '0').toUpperCase());
+
+  switch (format) {
+    case 'compact':
+      return hexBytes.join('');
+    case 'spaced':
+      return hexBytes.join(' ');
+    case 'array':
+      return '[' + hexBytes.map(hex => '0x' + hex).join(', ') + ']';
+    case 'debug':
+      return `Buffer(${data.length}): ${hexBytes.join(' ')}`;
+    default:
+      return hexBytes.join(' ');
+  }
+}
+
 export interface BLEDevice {
   id: string
   name: string
@@ -268,7 +292,7 @@ export class BLEManager extends EventEmitter {
 
   private handleDataReceived(characteristicUuid: string, data: Buffer) {
     const parsedData = parseData(data);
-    console.log(`Parsed data from ${characteristicUuid}:`, JSON.stringify(parsedData));
+    console.log(`Parsed data from ${characteristicUuid}:`, JSON.stringify(parsedData), `data: ${bufferToHex(data)}`);
 
     // 파싱된 구조화된 데이터를 emit
     this.emit('deviceDataParsed', { characteristicUuid, parsedData });

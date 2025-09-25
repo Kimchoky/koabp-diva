@@ -47,7 +47,7 @@ function App({Component, pageProps, router}: AppProps) {
             <div className="min-h-screen relative p-4">
               <AuthenticatedApp Component={Component} pageProps={pageProps} router={router} />
               <ThemeToggle/>
-              <LogWindow/>
+              {/*<LogWindow/>*/}
             </div>
 
           </DialogProvider>

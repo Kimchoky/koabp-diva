@@ -19,7 +19,7 @@ export default function Button({
   children,
   appearance = 'contained',
   mode = 'default',
-  size = 'md',
+  size = 'sm',
   icon,
   loading = false,
   className,

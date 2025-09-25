@@ -3,20 +3,8 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    /* 색상 변수 정의 */
-    --color-bg-light: #e5e7eb; /* gray-200 */
-    --color-bg-dark: #111827; /* gray-900 */
-    --color-surface-light: #d5d5d5; /*  */
-    --color-surface-dark: #1f2937; /* gray-800 */
-    --color-border-light: #b9b9b9;  /* gray-200 */
-    --color-border-dark: #374151;   /* gray-700 */
-    --color-text-light: #111827;  /* gray-200 */
-    --color-text-dark: #e5e7eb;   /*gray-900*/
-  }
-
   body {
-    @apply bg-[--color-bg-light] text-[--color-text-light] dark:bg-[--color-bg-dark] dark:text-[--color-text-dark];
+    @apply bg-gray-200 text-gray-900 dark:bg-gray-900 dark:text-gray-200;
   }
   h1 { @apply text-3xl }
   h2 { @apply text-2xl }
@@ -29,21 +17,66 @@
   .btn {
     @apply py-2 px-3 rounded transition-colors duration-200;
   }
+
+  .stack-surface {
+    @apply rounded-lg shadow-sm p-4
+           bg-surface-light dark:bg-surface-dark
+           text-onSurface-light dark:text-onSurface-dark;
+  }
+  .stack-outlined {
+    @apply border rounded-lg p-4
+           border-border-light dark:border-border-dark;
+  }
+  .bordered {
+    @apply border rounded border-border-light dark:border-border-dark;
+  }
+
 }
 
 
 @layer utilities {
 
-  .stack-surface {
-    @apply rounded-lg shadow-sm p-4
-           bg-[--color-surface-light] dark:bg-[--color-surface-dark]
-           text-[--color-surface-dark] dark:text-[--color-surface-light];
-  }
-  .stack-outlined {
-    @apply border rounded-lg p-4
-           border-[--color-border-light] dark:border-[--color-border-dark];
+  .headline {
+    @apply font-bold text-2xl;
   }
 
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease-in-out forwards;
+  }
+  .animate-fade-in-up {
+    animation: fadeInUp 0.4s ease-in-out forwards;
+  }
+  .animate-fade-in-right {
+    animation: fadeInRight 0.4s ease-in-out forwards;
+  }
+  .animate-fade-out {
+    animation: fadeOut 0.4s ease-in-out forwards;
+  }
+  .animate-emergency {
+    animation: emergency 0.8s ease-in-out infinite;
+  }
+
+
+}
+
+@keyframes fadeIn {
+  from  { opacity: 0; }
+  to    { opacity: 1; }
+}
+@keyframes fadeInUp {
+  from  { opacity: 0; transform: translateY(10px); }
+  to    { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInRight {
+  from  { opacity: 0; transform: translateX(-10px); }
+  to    { opacity: 1; transform: translateX(0); }
+}
+@keyframes fadeOut {
+  from  { opacity: 1; }
+  to    { opacity: 0; }
+}
+@keyframes emergency {
+  50% { transform: scale(1.3); }
 }
 
 /* Custom Scrollbar Styles */

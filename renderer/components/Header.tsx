@@ -1,13 +1,14 @@
 import React, {useEffect, useMemo, useRef, useState} from "react";
-import BleStateIndicator from "./BleStateIndicator";
 import {HStack, VStack} from "./ui/Stack";
 import {useAuth, UserInfo} from "../contexts/AuthContext";
 import Divider from "./ui/Divider";
 import Button from "./ui/Button";
-import {X} from "lucide-react";
+import {LucideBluetoothOff, LucideBluetoothSearching, X} from "lucide-react";
+import {useBLE} from "../contexts/BLEContext";
+import Tooltip from "./ui/Tooltip";
 
 
-const UserMenu = ({ setShowUserMenu }: { setShowUserMenu: (_:boolean)=>void}) => {
+const UserMenu = ({setShowUserMenu}: { setShowUserMenu: (_: boolean) => void }) => {
 
   const [timeElapsed, setTimeElapsed] = useState(0);
   const timeIntervalRef = useRef(null);
@@ -40,7 +41,7 @@ const UserMenu = ({ setShowUserMenu }: { setShowUserMenu: (_:boolean)=>void}) =>
   }
 
   useEffect(() => {
-    timeIntervalRef.current = window.setInterval(()=>{
+    timeIntervalRef.current = window.setInterval(() => {
       const loginTime = auth?.user?.loginTime || new Date()
       const t = new Date().getTime() - loginTime.getTime();
       setTimeElapsed(t)
@@ -56,7 +57,7 @@ const UserMenu = ({ setShowUserMenu }: { setShowUserMenu: (_:boolean)=>void}) =>
             alignItems="center"
             gap={2}
             className="absolute right-0 top-full mt-2 max-h-150 shadow-lg z-50 overflow-y-auto border border-gray-500 w-max min-w-64">
-      <X className="self-end cursor-pointer" onClick={()=> setShowUserMenu(false) }/>
+      <X className="self-end cursor-pointer" onClick={() => setShowUserMenu(false)}/>
       <VStack alignItems={"flex-start"} className="w-full text-sm" gap={1}>
         <HStack gap={1}>
           <span className="w-[5em]">로그인 시각</span>
@@ -67,9 +68,9 @@ const UserMenu = ({ setShowUserMenu }: { setShowUserMenu: (_:boolean)=>void}) =>
           <span className="w-[5em]">세션 시간</span>
           <Divider vertical/>
           <span>{formatElapsedTime(timeElapsed)}</span>
-          </HStack>
+        </HStack>
       </VStack>
-      <Divider />
+      <Divider/>
       <Button mode="error" size="sm" className="w-full" onClick={handleLogout}>로그아웃</Button>
     </VStack>
   )
@@ -78,34 +79,50 @@ const UserMenu = ({ setShowUserMenu }: { setShowUserMenu: (_:boolean)=>void}) =>
 export default function Header() {
 
   const auth = useAuth();
+  const {bleState} = useBLE();
 
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   return (
     <HStack justifyContent="space-between" alignItems="center">
       <HStack gap={2} className="flex items-baseline">
-        <span className="text-xl text-primary">KoaBP DIVA</span>
-        <span className="text-sm">Version: {"1.0.0"}</span>
-        <BleStateIndicator/>
+        <span className="text-2xl text-primary">KoaBP DIVA</span>
+        <span className="text-sm">{"1.0.0"}</span>
 
       </HStack>
 
 
-        <HStack className="relative" gap={2}>
-          <Button
-            size="sm"
-            mode="primary"
-            icon="User"
-            appearance="contained"
-            className="cursor-pointer "
-            onClick={() => setShowUserMenu(true)}
-          >
-            {auth.user?.name}
-          </Button>
-          { showUserMenu &&
-            <UserMenu setShowUserMenu={setShowUserMenu} />
-          }
-        </HStack>
+      <HStack className="relative" gap={6}>
+
+        <Tooltip
+          content={bleState.state === 'poweredOn' ? 'Bluetooth 연결됨' : 'Bluetooth 연결 끊어짐'}
+          position="bottom"
+          delay={0}
+        >
+          <div >
+            {bleState.state === 'poweredOn' && (
+             <LucideBluetoothSearching className="text-green-600 dark:text-green-400"/>
+            )}
+            {bleState.state === 'poweredOff' && (
+              <LucideBluetoothOff className={"text-red-600 dark:text-red-400 animate-emergency"}/>
+            )}
+          </div>
+        </Tooltip>
+
+        <Button
+          size="sm"
+          mode="primary"
+          icon="User"
+          appearance="contained"
+          className="cursor-pointer "
+          onClick={() => setShowUserMenu(true)}
+        >
+          {auth.user?.name}
+        </Button>
+        {showUserMenu &&
+          <UserMenu setShowUserMenu={setShowUserMenu}/>
+        }
+      </HStack>
 
     </HStack>
   )

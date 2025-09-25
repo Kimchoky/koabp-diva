@@ -87,6 +87,8 @@ const bleHandler = {
     ipcRenderer.on('ble-data-written', subscription)
     return () => ipcRenderer.removeListener('ble-data-written', subscription)
   },
+
+  readRSSI: () => ipcRenderer.invoke('ble-read-rssi'),
 }
 
 contextBridge.exposeInMainWorld('ipc', handler)

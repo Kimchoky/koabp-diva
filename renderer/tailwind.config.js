@@ -1,4 +1,3 @@
-const {cn} = require("./components/utils/cn");
 module.exports = {
   content: [
     './renderer/pages/**/*.{js,ts,jsx,tsx}',
@@ -14,6 +13,19 @@ module.exports = {
         error: '#ef4444',
         info: '#1d73e3',
 
+        border: {
+          light: '#9ca3af', // 'border-gray-400',
+          dark: '#6b7280',  // 'border-gray-500',
+        },
+
+        surface: {
+          light: '#d1d5db', // bg-gray-300
+          dark: '#1f2937'   // bg-gray-800
+        },
+        onSurface: {
+          light: '#fbfbfb', // text-gray-800
+          dark: '#d1d5db',   //text-gray-300
+        },
 
         // 또는 직접 색상 값 정의
         brand: {

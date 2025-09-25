@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { BLEManager } from '../ble-manager'
+import { BLEManager } from './ble-manager'
 
 export function registerBLEHandlers(bleManager: BLEManager) {
   ipcMain.handle('ble-get-state', async () => {

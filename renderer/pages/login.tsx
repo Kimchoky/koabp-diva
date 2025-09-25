@@ -8,7 +8,7 @@ export default function LoginPage() {
 
   return (
 
-    <div className="fixed inset-0 z-50 backdrop-blur-sm flex justify-center items-center">
+    <div className="fixed inset-0 z-50 backdrop-blur-sm flex justify-center items-center animate-fade-in">
 
       <UserList />
 

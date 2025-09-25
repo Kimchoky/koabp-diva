@@ -38,7 +38,7 @@ export default function LogWindow() {
         </HStack>
       </HStack>
       <VStack appearance="outlined">
-        <div className="h-32 overflow-y-scroll" ref={scrollDivRef}>
+        <div className="h-[230px] overflow-y-scroll" ref={scrollDivRef}>
           {logs.map((log, index) => (
             <p key={index}>{log}</p>
           ))}
