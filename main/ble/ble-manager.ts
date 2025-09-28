@@ -2,6 +2,35 @@ import noble from '@abandonware/noble'
 import { EventEmitter } from 'events'
 import { parseData } from './ble-protocol'
 
+interface NoblePeripheral {
+  id: string
+  advertisement: {
+    localName?: string
+    [key: string]: any
+  }
+  rssi: number
+  connect(callback?: (error?: string | Error) => void): void
+  disconnect(callback?: (error?: string | Error) => void): void
+  discoverServices(serviceUUIDs: string[], callback: (error?: string | Error, services?: NobleService[]) => void): void
+  once(event: 'disconnect', listener: () => void): void
+}
+
+interface NobleService {
+  uuid: string
+  discoverCharacteristics(characteristicUUIDs: string[], callback: (error?: string | Error, characteristics?: NobleCharacteristic[]) => void): void
+}
+
+interface NobleCharacteristic {
+  uuid: string
+  properties: string[]
+  write(data: Buffer, withoutResponse: boolean, callback: (error?: string | Error) => void): void
+  read(callback: (error?: string | Error, data?: Buffer) => void): void
+  subscribe(callback: (error?: string | Error) => void): void
+  unsubscribe(callback: (error?: string | Error) => void): void
+  on(event: 'data', listener: (data: Buffer) => void): void
+  removeAllListeners(event: string): void
+}
+
 /**
  * Buffer를 16진수 문자열로 변환합니다.
  */
@@ -44,10 +73,10 @@ export interface BLEService {
 }
 
 export class BLEManager extends EventEmitter {
-  private connectedDevice: any = null
-  private connectedCharacteristics: Map<string, any> = new Map()
+  private connectedDevice: NoblePeripheral | null = null
+  private connectedCharacteristics: Map<string, NobleCharacteristic> = new Map()
   private isScanning = false
-  private discoveredPeripherals: Map<string, any> = new Map()
+  private discoveredPeripherals: Map<string, NoblePeripheral> = new Map()
 
   constructor() {
     super()
@@ -73,7 +102,7 @@ export class BLEManager extends EventEmitter {
       }
     })
 
-    noble.on('discover', (peripheral) => {
+    noble.on('discover', (peripheral: NoblePeripheral) => {
       try {
         // Store the peripheral for later connection
         this.discoveredPeripherals.set(peripheral.id, peripheral)
@@ -115,11 +144,11 @@ export class BLEManager extends EventEmitter {
       }
     })
 
-    noble.on('warning', (message) => {
+    noble.on('warning', (message: string) => {
       console.warn('Noble warning:', message)
     })
 
-    noble.on('error', (error) => {
+    noble.on('error', (error: Error) => {
       console.error('Noble error:', error)
     })
   }
@@ -174,12 +203,12 @@ export class BLEManager extends EventEmitter {
         reject(new Error('Connection timeout'))
       }, 10000) // 10 seconds timeout
 
-      peripheral.connect((error: any) => {
+      peripheral.connect((error?: string | Error) => {
         clearTimeout(connectionTimeout)
 
         if (error) {
           console.error('Connection failed:', error)
-          reject(new Error(`Connection failed: ${error.message || error}`))
+          reject(new Error(`Connection failed: ${error instanceof Error ? error.message : error}`))
           return
         }
 
@@ -208,7 +237,7 @@ export class BLEManager extends EventEmitter {
       }
 
       console.log('Disconnecting from device...')
-      this.connectedDevice.disconnect((error: any) => {
+      this.connectedDevice.disconnect((error?: string | Error) => {
         if (error) {
           console.error('Disconnection failed:', error)
           reject(error)
@@ -227,28 +256,28 @@ export class BLEManager extends EventEmitter {
       }
 
       console.log('Discovering services...')
-      this.connectedDevice.discoverServices([], (error: any, services: any[]) => {
+      this.connectedDevice.discoverServices([], (error?: string | Error, services?: NobleService[]) => {
         if (error) {
           console.error('Service discovery failed:', error)
           reject(error)
           return
         }
 
-        const servicePromises = services.map(service =>
+        const servicePromises = (services || []).map(service =>
           new Promise<BLEService>((resolveService, rejectService) => {
-            service.discoverCharacteristics([], (charError: any, characteristics: any[]) => {
+            service.discoverCharacteristics([], (charError?: string | Error, characteristics?: NobleCharacteristic[]) => {
               if (charError) {
                 rejectService(charError)
                 return
               }
 
-              characteristics.forEach(char => {
+              (characteristics || []).forEach(char => {
                 this.connectedCharacteristics.set(char.uuid, char)
               })
 
               const bleService: BLEService = {
                 uuid: service.uuid,
-                characteristics: characteristics.map(char => ({
+                characteristics: (characteristics || []).map(char => ({
                   uuid: char.uuid,
                   properties: char.properties
                 }))
@@ -275,7 +304,7 @@ export class BLEManager extends EventEmitter {
       }
 
       console.log('Writing data to characteristic:', characteristicUuid)
-      characteristic.write(data, false, (error: any) => {
+      characteristic.write(data, false, (error?: string | Error) => {
         if (error) {
           console.error('Write failed:', error)
           reject(error)
@@ -292,7 +321,13 @@ export class BLEManager extends EventEmitter {
 
   private handleDataReceived(characteristicUuid: string, data: Buffer) {
     const parsedData = parseData(data);
-    console.log(`Parsed data from ${characteristicUuid}:`, JSON.stringify(parsedData), `data: ${bufferToHex(data)}`);
+
+    if (parsedData?.type === 'firmwareStatus' && (new Date().getTime() % 1000 === 0)) {
+      console.log('Received firmwareStatus (logging every 10 seconds):', parsedData.payload)
+    }
+    else {
+      console.log(`Parsed data from ${characteristicUuid}:`, JSON.stringify(parsedData), `data: ${bufferToHex(data)}`);
+    }
 
     // 파싱된 구조화된 데이터를 emit
     this.emit('deviceDataParsed', { characteristicUuid, parsedData });
@@ -307,7 +342,7 @@ export class BLEManager extends EventEmitter {
       }
 
       console.log('Reading data from characteristic:', characteristicUuid)
-      characteristic.read((error: any, data: Buffer) => {
+      characteristic.read((error?: string | Error, data?: Buffer) => {
         if (error) {
           console.error('Read failed:', error)
           reject(error)
@@ -315,8 +350,10 @@ export class BLEManager extends EventEmitter {
         }
 
         // 중앙 핸들러를 통해 데이터 처리
-        this.handleDataReceived(characteristicUuid, data);
-        resolve(data)
+        if (data) {
+          this.handleDataReceived(characteristicUuid, data);
+        }
+        resolve(data || Buffer.alloc(0))
       })
     })
   }
@@ -329,7 +366,7 @@ export class BLEManager extends EventEmitter {
         return
       }
 
-      characteristic.subscribe((error: any) => {
+      characteristic.subscribe((error?: string | Error) => {
         if (error) {
           console.error('Subscription failed:', error)
           reject(error)
@@ -359,7 +396,7 @@ export class BLEManager extends EventEmitter {
         return
       }
 
-      characteristic.unsubscribe((error: any) => {
+      characteristic.unsubscribe((error?: string | Error) => {
         if (error) {
           console.error('Unsubscribe failed:', error)
           reject(error)
