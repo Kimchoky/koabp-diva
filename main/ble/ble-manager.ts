@@ -282,7 +282,7 @@ export class BLEManager extends EventEmitter {
           return
         }
 
-        console.log('Data written successfully')
+        console.log(`Data written successfully. data=[${bufferToHex(data)}]`)
         this.emit('dataWritten', characteristicUuid, data)
         resolve()
       })

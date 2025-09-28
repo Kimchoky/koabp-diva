@@ -1,9 +1,11 @@
 import {HStack, VStack} from "./ui/Stack";
 import BatteryIndicator from "./ui/BatteryIndicator";
 import Button from "./ui/Button";
+import Tag from "./ui/Tag";
 import React, {useState} from "react";
 import {useBLE} from "../contexts/BLEContext";
-import {LucideBluetooth} from "lucide-react";
+import {LucideBluetooth, LucideWifi} from "lucide-react";
+import ActivityIndicator from "./ui/ActivityIndicator";
 
 export default function DeviceConnected() {
 
@@ -27,22 +29,23 @@ export default function DeviceConnected() {
               <HStack justifyContent={"space-between"} alignItems={"center"}>
                 <VStack gap={2}>
                   <HStack gap={2} className="text-sm text-gray-500 dark:text-gray-400">
-                    <HStack appearance="outlined" gap={1} className="rounded !px-2 !py-1 bg-[#3954E0FF] text-gray-300">
-                      <LucideBluetooth size="1em"/>
-                      <span>연결됨</span>
-                    </HStack>
+                    <Tag variant="primary" size="sm" icon={<LucideBluetooth size="1em"/>} className="w-24">
+                      연결됨
+                    </Tag>
                     <span className="font-bold text-xl text-primary">{bleState.connectedDevice.name}</span>
                   </HStack>
 
                   {/* 통신 상태 표시 */}
                   <HStack gap={2} className="text-xs">
-                    <span className={`px-4 py-2 rounded
-                      ${bleState.communicationHealthy
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                        : 'bg-red-600 text-red-200 animate-pulse'}
-                    `}>
+                    <Tag
+                      variant={bleState.communicationHealthy ? 'success' : 'error'}
+                      size="sm"
+                      icon={<LucideWifi size="1em"/>}
+                      animate={!bleState.communicationHealthy}
+                      className="w-24"
+                    >
                       {bleState.communicationHealthy ? '통신 정상' : '통신 이상'}
-                    </span>
+                    </Tag>
                     {bleState.lastBatteryDataTime && (
                       <span className="text-gray-500">
                         마지막 수신: {bleState.lastBatteryDataTime.toLocaleTimeString()}
@@ -118,7 +121,12 @@ export default function DeviceConnected() {
         ) : (
           <div className={"animate-fade-in-up"}>
             <VStack justifyContent={"center"} alignItems={"center"} className={""}>
-                <h2 className={" animate-pulse"}>기기를 연결해주세요.</h2>
+                <ActivityIndicator.TextGradient
+                  palette={"red"}
+                  className={"font-bold text-[2rem] animate-pulse"}
+                >
+                  기기를 연결해주세요
+                </ActivityIndicator.TextGradient>
             </VStack>
           </div>
         )

@@ -55,3 +55,7 @@ export const createCommandSender = (
     return writeData(UUID_CHARACTERISTIC_CUSTOM_TOTAL_WRITE, COMMANDS.bpStop);
   },
 });
+
+export const responseHandler = {
+
+}

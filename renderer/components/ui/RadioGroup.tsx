@@ -23,7 +23,7 @@ interface RadioItemProps {
   children: ReactNode;
   disabled?: boolean;
   className?: string;
-  outlined?: boolean;
+  button?: boolean; // button 처럼 보이게 할지
 }
 
 const RadioGroup = ({ value, onChange, name, children, className = "", vertical = false, gap = 2 }: RadioGroupProps) => {
@@ -36,7 +36,7 @@ const RadioGroup = ({ value, onChange, name, children, className = "", vertical 
   );
 };
 
-const RadioItem = ({ value, children, disabled = false, outlined = false, className = "" }: RadioItemProps) => {
+const RadioItem = ({ value, children, disabled = false, button = false, className = "" }: RadioItemProps) => {
   const context = useContext(RadioContext);
 
   if (!context) {
@@ -56,15 +56,10 @@ const RadioItem = ({ value, children, disabled = false, outlined = false, classN
     <label
       className={`
         inline-flex items-center gap-2 cursor-pointer
-        py-2 transition-all duration-200 ${outlined ? 'rounded outline outline-gray-600 px-2' : ''}
-        ${isSelected
-          ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 text-blue-700 dark:text-blue-300'
-          : 'border-[--color-border-light] dark:border-[--color-border-dark] hover:border-blue-300 dark:hover:border-blue-600'
-        }
-        ${disabled
-          ? 'opacity-50 cursor-not-allowed'
-          : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
-        }
+        px-4 py-2 transition-all duration-200 ${button ? 'rounded outline outline-gray-600 px-2' : ''}
+        ${button && !isSelected && 'border-border-light dark:border-border-dark hover:bg-border-light/30'}
+        ${button && isSelected && 'bg-primary text-white dark:bg-primary/80'}
+        ${disabled && 'opacity-35 cursor-not-allowed hover:bg-none'}
         ${className}
       `}
     >
@@ -78,12 +73,12 @@ const RadioItem = ({ value, children, disabled = false, outlined = false, classN
         className="sr-only"
       />
       <div
-        className={`
-          w-4 h-4 rounded-full border-2 flex items-center justify-center
+        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center
           transition-all duration-200
+          ${button && 'hidden'}
           ${isSelected
             ? 'border-blue-500 bg-blue-500'
-            : 'border-gray-300 dark:border-gray-600'
+            : 'border-text-light dark:border-text-dark'
           }
         `}
       >

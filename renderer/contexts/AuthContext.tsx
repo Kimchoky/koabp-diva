@@ -1,51 +1,60 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react'
-import {User} from "../lib/api-client";
-import {userInfo} from "node:os";
+import React, {createContext, ReactNode, useCallback, useContext, useState} from 'react'
 
-export interface UserInfo {
-  name: string
-  loginTime: Date
+export interface SessionInfo {
+  name: string;
+  loginTime: Date;
+  workCount: number;
 }
 
-interface AuthContextType {
-  user: UserInfo | null
-  login: (user: UserInfo) => void
-  logout: () => void
-  isAuthenticated: boolean
+interface SessionContextType {
+  user: SessionInfo | null;
+  login: (user: SessionInfo) => void;
+  logout: () => void;
+  isAuthenticated: boolean;
+  increaseWorkCount: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const SessionContext = createContext<SessionContextType | undefined>(undefined)
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<UserInfo | null>(null)
+export function SessionProvider({ children }: { children: ReactNode }) {
+  const [session, setSession] = useState<SessionInfo | null>(null)
 
-  const login = useCallback((_user: UserInfo) => {
-    setUser({
-      ..._user,
-      loginTime: new Date()
+  const login = useCallback((_session: SessionInfo) => {
+    setSession({
+      ..._session,
+      loginTime: new Date(),
+      workCount: 0,
     })
   }, [])
 
   const logout = useCallback(() => {
-    setUser(null)
+    setSession(null);
   }, [])
 
-  const isAuthenticated = user !== null
+  const isAuthenticated = session !== null
 
-  const value: AuthContextType = {
-    user,
-    login,
-    logout,
-    isAuthenticated
+  const increaseWorkCount = () => {
+    setSession(prev => ({
+      ...prev,
+      workCount: prev.workCount + 1,
+    }))
   }
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  const value: SessionContextType = {
+    user: session,
+    login,
+    logout,
+    isAuthenticated,
+    increaseWorkCount,
+  }
+
+  return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext)
+export function useSession() {
+  const context = useContext(SessionContext)
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
+    throw new Error('useSession must be used within an SessionProvider')
   }
   return context
 }

@@ -1,7 +1,8 @@
-import React, {createContext, useContext, useEffect, useState, useCallback, ReactNode, useMemo, useRef} from 'react'
+import React, {createContext, useContext, useEffect, useState, useCallback, ReactNode, useMemo} from 'react'
 import { UUID_CHARACTERISTIC_CUSTOM_TOTAL_NOTIFY_DATA } from '../lib/UUID'
 import { createCommandSender } from '../lib/ble-commands'
 import { DeviceHistoryManager, DeviceHistoryItem } from '../lib/deviceHistory';
+import { BLEDataProcessor } from '../lib/ble-data-process';
 
 // 파서가 Main 프로세스로 이동했으므로, 여기서 ParsedData 타입만 import 하거나 직접 정의합니다.
 export interface ParsedData {
@@ -41,6 +42,7 @@ export interface BLEState {
   lastParsedData: ParsedData | null // 파싱된 데이터를 저장할 상태
   communicationHealthy: boolean // 실제 데이터 통신이 가능한지 여부
   lastBatteryDataTime: Date | null // 마지막 배터리 데이터 수신 시간
+  factoryMode: 'on' | 'off' | 'unknown'
 }
 
 export type BleResultType = { success: boolean; error?: string }
@@ -80,15 +82,12 @@ export function BLEProvider({ children }: { children: ReactNode }) {
     lastParsedData: null, // 초기값 설정
     communicationHealthy: false, // 초기값: 통신 불가능 상태
     lastBatteryDataTime: null, // 초기값: 배터리 데이터 수신 시간 없음
+    factoryMode: 'unknown',
   })
 
   const [logs, setLogs] = useState<string[]>([])
   const [recentDevices, setRecentDevices] = useState<DeviceHistoryItem[]>([])
   const deviceHistoryManager = useMemo(() => DeviceHistoryManager.getInstance(), [])
-
-  // 배터리 데이터 타임아웃 체크용 타이머
-  const batteryTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const BATTERY_TIMEOUT_MS = 5000 // 5초 타임아웃
 
   const addLog = useCallback((message: string) => {
     const timestamp = new Date().toLocaleTimeString()
@@ -189,6 +188,13 @@ export function BLEProvider({ children }: { children: ReactNode }) {
     }
   }, [addLog])
 
+   // 데이터 처리 프로세서 생성
+  const dataProcessor = useMemo(() => new BLEDataProcessor({
+    setBleState,
+    addLog,
+    disconnect
+  }), [addLog])
+
   const subscribeNotifications = useCallback(async (characteristicUuid: string) => {
     try {
       const result = await window.ble.subscribeNotifications(characteristicUuid)
@@ -269,77 +275,6 @@ export function BLEProvider({ children }: { children: ReactNode }) {
     addLog('Device history cleared')
   }, [deviceHistoryManager, refreshRecentDevices, addLog])
 
-  // 배터리 데이터 타임아웃 타이머 시작
-  const startBatteryTimeout = useCallback(() => {
-    // 기존 타이머 정리
-    if (batteryTimeoutRef.current) {
-      clearTimeout(batteryTimeoutRef.current)
-    }
-
-    batteryTimeoutRef.current = setTimeout(() => {
-      setBleState(prev => {
-        if (prev.isConnected && prev.communicationHealthy) {
-          addLog('Battery data timeout - communication may be unhealthy')
-          return {
-            ...prev,
-            communicationHealthy: false
-          }
-        }
-        return prev
-      })
-    }, BATTERY_TIMEOUT_MS)
-  }, [addLog, BATTERY_TIMEOUT_MS])
-
-  // 배터리 데이터 수신 시 호출 - 통신 상태를 건강함으로 표시
-  const onBatteryDataReceived = useCallback((parsedData: ParsedData) => {
-
-    const now = new Date()
-
-    const newState = {}
-
-    setBleState(prev => {
-      if (!prev.connectedDevice) {
-        return { ...prev, lastParsedData: parsedData };
-      }
-      // 배터리 업데이트
-      const currBatteryLevel = prev.connectedDevice.batteryLevel;
-      const newBatteryLevel = parsedData.payload.batteryLevel;
-      if (!currBatteryLevel || (newBatteryLevel !== currBatteryLevel)) {
-        // 연결된 기기 정보에서 배터리 레벨 업데이트
-        newState.connectedDevice = {
-          ...prev.connectedDevice,
-          batteryLevel: newBatteryLevel
-        };
-        addLog(`Updating battery level for ${prev.connectedDevice.name} to ${newBatteryLevel}%`);
-      }
-
-      return {
-        ...prev,
-        ...newState,
-        // healthCheck
-        communicationHealthy: true,
-        lastBatteryDataTime: now,
-        // lastParsedData: parsedData,
-      }
-    })
-
-    // 다음 타임아웃 타이머 시작
-    startBatteryTimeout()
-
-  }, [startBatteryTimeout])
-
-  // 연결 해제 시 타이머 정리
-  const cleanupBatteryTimeout = useCallback(() => {
-    if (batteryTimeoutRef.current) {
-      clearTimeout(batteryTimeoutRef.current)
-      batteryTimeoutRef.current = null
-    }
-    setBleState(prev => ({
-      ...prev,
-      communicationHealthy: false,
-      lastBatteryDataTime: null
-    }))
-  }, [])
 
 
 
@@ -442,7 +377,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       refreshRecentDevices();
 
       // 배터리 데이터 타임아웃 타이머 시작 (연결 후 곧 배터리 데이터가 와야 함)
-      startBatteryTimeout();
+      dataProcessor.startBatteryTimeout();
 
       addLog(`Connected to device: ${deviceId}`)
     })
@@ -458,25 +393,14 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       }))
 
       // 배터리 데이터 타임아웃 타이머 정리
-      cleanupBatteryTimeout();
+      dataProcessor.cleanupBatteryTimeout();
 
       addLog(`Disconnected from device: ${deviceId}`)
     })
     unsubscribers.push(unsubDeviceDisconnected)
 
     // Main 프로세스에서 파싱된 데이터를 받는 리스너
-    const unsubDeviceDataParsed = window.ble.onDeviceDataParsed(({ characteristicUuid, parsedData }: { characteristicUuid: string, parsedData: ParsedData }) => {
-
-      if (parsedData.type === 'firmwareStatus') {
-        // 배터리 데이터 수신 = 통신 상태 양호
-        // 배터리 잔량 업데이트 처리
-        onBatteryDataReceived(parsedData);
-
-      } else {
-        // 다른 종류의 데이터는 lastParsedData에만 저장
-        setBleState(prev => ({ ...prev, lastParsedData: parsedData }));
-      }
-    });
+    const unsubDeviceDataParsed = window.ble.onDeviceDataParsed(dataProcessor.processDeviceDataParsed);
     unsubscribers.push(unsubDeviceDataParsed);
 
 
@@ -494,12 +418,10 @@ export function BLEProvider({ children }: { children: ReactNode }) {
 
     return () => {
       unsubscribers.forEach(unsub => unsub())
-      // 컴포넌트 언마운트 시 배터리 타이머 정리
-      if (batteryTimeoutRef.current) {
-        clearTimeout(batteryTimeoutRef.current)
-      }
+      // 컴포넌트 언마운트 시 데이터 처리 정리
+      dataProcessor.cleanup()
     }
-  }, [addLog, deviceHistoryManager, refreshRecentDevices, startBatteryTimeout, onBatteryDataReceived, cleanupBatteryTimeout])
+  }, [addLog, deviceHistoryManager, refreshRecentDevices, dataProcessor])
 
   // 최근 기기 목록 초기 로드
   useEffect(() => {

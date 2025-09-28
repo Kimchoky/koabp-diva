@@ -1,12 +1,12 @@
 import {HStack, VStack} from "./ui/Stack";
 import {useRouter} from "next/router";
-import {useAuth} from "../contexts/AuthContext";
+import {useSession} from "../contexts/AuthContext";
 
 
 export default function UserList() {
 
   const router = useRouter();
-  const auth = useAuth();
+  const auth = useSession();
 
   // TODO: Link API
   const users = [

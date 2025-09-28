@@ -2,6 +2,20 @@ import { useQuery, useMutation } from '../hooks/useQuery';
 import { queryFunctions, User, Product } from './api-client';
 import { ApiError } from './api-config';
 
+
+export const checkDeviceNumberExists = (deviceNumber: number) => {
+
+  //TODO: implement API
+  // return useQuery(`device/${deviceNumber}`)
+
+  return false;
+}
+
+export const getNextDeviceNumber = (deviceType: DeviceType): number => {
+  // TODO: implement API
+  return 5177;
+}
+
 export function useUsers() {
   return useQuery<User[]>('users');
 }

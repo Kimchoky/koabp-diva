@@ -283,7 +283,7 @@ export default function DeviceScanner() {
         </VStack>
          <HStack gap={2} className="">
             TEST:
-            <Button onClick={()=>{bleState.connectedDevice = { id: 'tet', name: 'dummy',  rssi: -10, advertisement: 'hooo', batteryLevel: (new Date().getTime()%80+15)}; disconnect()}}>con</Button>
+            <Button onClick={()=>{bleState.connectedDevice = { id: 'tet', name: 'KOABP-TPx1-',  rssi: -10, advertisement: 'hooo', batteryLevel: (new Date().getTime()%80+15)}; disconnect()}}>con</Button>
             <Button onClick={()=>{bleState.connectedDevice = null; disconnect()}}>discon</Button>
           </HStack>
       </VStack>

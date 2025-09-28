@@ -1,6 +1,6 @@
 import React, {useEffect, useMemo, useRef, useState} from "react";
 import {HStack, VStack} from "./ui/Stack";
-import {useAuth, UserInfo} from "../contexts/AuthContext";
+import {useSession, SessionInfo} from "../contexts/AuthContext";
 import Divider from "./ui/Divider";
 import Button from "./ui/Button";
 import {LucideBluetoothOff, LucideBluetoothSearching, X} from "lucide-react";
@@ -12,7 +12,7 @@ const UserMenu = ({setShowUserMenu}: { setShowUserMenu: (_: boolean) => void }) 
 
   const [timeElapsed, setTimeElapsed] = useState(0);
   const timeIntervalRef = useRef(null);
-  const auth = useAuth();
+  const session = useSession();
 
   // 시간을 human-readable 형태로 변환
   const formatElapsedTime = (milliseconds: number): string => {
@@ -37,12 +37,12 @@ const UserMenu = ({setShowUserMenu}: { setShowUserMenu: (_: boolean) => void }) 
   };
 
   const handleLogout = () => {
-    auth.logout();
+    session.logout();
   }
 
   useEffect(() => {
     timeIntervalRef.current = window.setInterval(() => {
-      const loginTime = auth?.user?.loginTime || new Date()
+      const loginTime = session?.user?.loginTime || new Date()
       const t = new Date().getTime() - loginTime.getTime();
       setTimeElapsed(t)
     }, 1000)
@@ -62,7 +62,7 @@ const UserMenu = ({setShowUserMenu}: { setShowUserMenu: (_: boolean) => void }) 
         <HStack gap={1}>
           <span className="w-[5em]">로그인 시각</span>
           <Divider vertical/>
-          <span>{auth?.user?.loginTime?.toLocaleString()}</span>
+          <span>{session?.user?.loginTime?.toLocaleString()}</span>
         </HStack>
         <HStack gap={1}>
           <span className="w-[5em]">세션 시간</span>
@@ -78,7 +78,7 @@ const UserMenu = ({setShowUserMenu}: { setShowUserMenu: (_: boolean) => void }) 
 
 export default function Header() {
 
-  const auth = useAuth();
+  const session = useSession();
   const {bleState} = useBLE();
 
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -117,7 +117,7 @@ export default function Header() {
           className="cursor-pointer "
           onClick={() => setShowUserMenu(true)}
         >
-          {auth.user?.name}
+          {session.user?.name}
         </Button>
         {showUserMenu &&
           <UserMenu setShowUserMenu={setShowUserMenu}/>
