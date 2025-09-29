@@ -3,7 +3,7 @@ import { queryFunctions, User, Product } from './api-client';
 import { ApiError } from './api-config';
 
 
-export const checkDeviceNumberExists = (deviceNumber: number) => {
+export const checkDeviceNumberExists = (deviceNumber: string) => {
 
   //TODO: implement API
   // return useQuery(`device/${deviceNumber}`)

@@ -36,7 +36,7 @@ let bleManager: BLEManager
   const mainWindow = createWindow('main', {
     width: 1700,
     height: 1000,
-    minWidth: 1000,
+    minWidth: 1120,
     minHeight: 800,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

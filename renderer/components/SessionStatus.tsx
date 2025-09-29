@@ -1,9 +1,9 @@
-import {useSession} from "../contexts/AuthContext";
+import {useSession} from "../contexts/SessionContext";
 import {HStack, VStack} from "./ui/Stack";
 
 export default function SessionStatus() {
 
-  const {user} = useSession();
+  const {session} = useSession();
 
   return (
     <div>
@@ -11,7 +11,7 @@ export default function SessionStatus() {
       <HStack gap={2} justifyContent="center">
         <VStack justifyContent="center" alignItems="center">
           <div>작업 건수</div>
-          <div className={`font-bold text-[2em] text-primary`}>{user.workCount}</div>
+          <div className={`font-bold text-[2em] text-primary`}>{session.workCount}</div>
         </VStack>
       </HStack>
     </div>

@@ -1,8 +1,9 @@
 import React, {createContext, useContext, useEffect, useState, useCallback, ReactNode, useMemo} from 'react'
-import { UUID_CHARACTERISTIC_CUSTOM_TOTAL_NOTIFY_DATA } from '../lib/UUID'
+import { UUID_CHARACTERISTIC_CUSTOM_TOTAL_NOTIFY_DATA } from '../../constants/uuid'
 import { createCommandSender } from '../lib/ble-commands'
 import { DeviceHistoryManager, DeviceHistoryItem } from '../lib/deviceHistory';
 import { BLEDataProcessor } from '../lib/ble-data-process';
+import {useSession} from "./SessionContext";
 
 // 파서가 Main 프로세스로 이동했으므로, 여기서 ParsedData 타입만 import 하거나 직접 정의합니다.
 export interface ParsedData {
@@ -20,6 +21,7 @@ export interface BLEDevice {
   rssi: number
   advertisement: any
   batteryLevel?: number
+  type?: DeviceType|null
 }
 
 export interface BLECharacteristic {
@@ -42,7 +44,6 @@ export interface BLEState {
   lastParsedData: ParsedData | null // 파싱된 데이터를 저장할 상태
   communicationHealthy: boolean // 실제 데이터 통신이 가능한지 여부
   lastBatteryDataTime: Date | null // 마지막 배터리 데이터 수신 시간
-  factoryMode: 'on' | 'off' | 'unknown'
 }
 
 export type BleResultType = { success: boolean; error?: string }
@@ -72,6 +73,9 @@ interface BLEContextType {
 const BLEContext = createContext<BLEContextType | undefined>(undefined)
 
 export function BLEProvider({ children }: { children: ReactNode }) {
+
+  const {uiState, setUiState} = useSession();
+
   const [bleState, setBleState] = useState<BLEState>({
     state: 'unknown',
     isScanning: false,
@@ -82,7 +86,6 @@ export function BLEProvider({ children }: { children: ReactNode }) {
     lastParsedData: null, // 초기값 설정
     communicationHealthy: false, // 초기값: 통신 불가능 상태
     lastBatteryDataTime: null, // 초기값: 배터리 데이터 수신 시간 없음
-    factoryMode: 'unknown',
   })
 
   const [logs, setLogs] = useState<string[]>([])
@@ -189,11 +192,18 @@ export function BLEProvider({ children }: { children: ReactNode }) {
   }, [addLog])
 
    // 데이터 처리 프로세서 생성
-  const dataProcessor = useMemo(() => new BLEDataProcessor({
-    setBleState,
-    addLog,
-    disconnect
-  }), [addLog])
+  const dataProcessor = useMemo(() => new BLEDataProcessor(
+    {
+      bleState,
+      uiState
+    },
+    {
+      setBleState,
+      setUiState,
+      addLog,
+      disconnect
+    }
+  ), [addLog])
 
   const subscribeNotifications = useCallback(async (characteristicUuid: string) => {
     try {
@@ -292,6 +302,12 @@ export function BLEProvider({ children }: { children: ReactNode }) {
 
     // Device discovered listener
     const unsubDeviceDiscovered = window.ble.onDeviceDiscovered((device: BLEDevice) => {
+
+      // type 프로퍼티 설정
+      if (device.advertisement.localName.startsWith('KOABP-KB1-')) { device.type = 'KB-1'}
+      if (device.advertisement.localName.startsWith('KOABP-TP1-')) { device.type = 'TP-1'}
+      if (device.advertisement.localName.startsWith('KOABP-CP1-')) { device.type = 'CP-1'}
+
       setBleState(prev => ({
         ...prev,
         scannedDevices: [...prev.scannedDevices.filter(d => d.id !== device.id), device]

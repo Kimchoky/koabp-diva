@@ -1,10 +1,9 @@
 import DeviceScanner from "../components/DeviceScanner";
-import React, {useState} from "react";
+import React from "react";
 import {HStack, VStack} from "../components/ui/Stack";
-import {useSession} from "../contexts/AuthContext";
+import {useSession} from "../contexts/SessionContext";
 import Header from "../components/Header";
 import {useBLE} from "../contexts/BLEContext";
-import Button from "../components/ui/Button";
 import DeviceConnected from "../components/DeviceConnected";
 import LogWindow from "../components/ui/LogWindow";
 import DeviceImprint from "../components/DeviceImprint";
@@ -60,10 +59,6 @@ export default function VerifyingPage() {
 
           <DeviceVerification />
 
-          <div className={"flex bg-red-200"}>
-          <Button onClick={()=> {bleState.communicationHealthy = true}}>통신정상</Button>
-          <Button onClick={()=> {bleState.communicationHealthy = false}}>통신오류</Button>
-          </div>
         </VStack>
 
 

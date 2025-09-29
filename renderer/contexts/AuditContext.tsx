@@ -8,7 +8,7 @@ import {
   BLEMetadata,
   UIMetadata,
   SystemMetadata,
-  BaseMetadata
+  BaseMetadata, ActorType
 } from '../types/audit';
 
 // 세션 ID 생성
@@ -26,6 +26,7 @@ interface ActionTracker {
   actionId: string;
   startTime: Date;
   actionType: UserActionType;
+  actor: ActorType;
   description: string;
   component?: string;
   metadata?: BaseMetadata;
@@ -47,7 +48,8 @@ interface AuditContextType {
       metadata?: BLEMetadata | UIMetadata | SystemMetadata | BaseMetadata;
       traceId?: string;
       parentId?: string;
-    }
+    },
+    actor?: ActorType,
   ) => string; // actionId 반환
 
   endAction: (
@@ -79,7 +81,8 @@ interface AuditContextType {
       };
       traceId?: string;
       parentId?: string;
-    }
+    },
+    actor?: ActorType,
   ) => void;
 
   // 로그 메시지
@@ -151,7 +154,8 @@ export function AuditProvider({
       metadata?: BaseMetadata;
       traceId?: string;
       parentId?: string;
-    }
+    },
+    actor?: ActorType,
   ): string => {
     const actionId = `action_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -163,7 +167,8 @@ export function AuditProvider({
       component: options?.component,
       metadata: options?.metadata,
       traceId: options?.traceId,
-      parentId: options?.parentId
+      parentId: options?.parentId,
+      actor,
     };
 
     activeActions.set(actionId, tracker);

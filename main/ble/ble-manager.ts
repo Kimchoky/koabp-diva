@@ -1,6 +1,6 @@
 import noble from '@abandonware/noble'
 import { EventEmitter } from 'events'
-import { parseData } from './ble-protocol'
+import { parseData } from './ble-parser'
 
 interface NoblePeripheral {
   id: string
@@ -303,7 +303,7 @@ export class BLEManager extends EventEmitter {
         return
       }
 
-      console.log('Writing data to characteristic:', characteristicUuid)
+      console.log(`Writing data to characteristic: ${characteristicUuid}`, `properties:`, characteristic.properties)
       characteristic.write(data, false, (error?: string | Error) => {
         if (error) {
           console.error('Write failed:', error)
@@ -311,7 +311,7 @@ export class BLEManager extends EventEmitter {
           return
         }
 
-        console.log(`Data written successfully. data=[${bufferToHex(data)}]`)
+        console.log(`Data written successfully. hex=[${bufferToHex(data)}] decimal=[${Array.from(data)}]`)
         this.emit('dataWritten', characteristicUuid, data)
         resolve()
       })
@@ -322,11 +322,8 @@ export class BLEManager extends EventEmitter {
   private handleDataReceived(characteristicUuid: string, data: Buffer) {
     const parsedData = parseData(data);
 
-    if (parsedData?.type === 'firmwareStatus' && (new Date().getTime() % 1000 === 0)) {
-      console.log('Received firmwareStatus (logging every 10 seconds):', parsedData.payload)
-    }
-    else {
-      console.log(`Parsed data from ${characteristicUuid}:`, JSON.stringify(parsedData), `data: ${bufferToHex(data)}`);
+    if (parsedData?.type !== 'batteryInfo') { // 펌웨어는 로깅안함 : UI에 표시됨
+      console.log(`Parsed data from ${this.connectedDevice.advertisement.localName}:`, JSON.stringify(parsedData), `data: ${bufferToHex(data)}`);
     }
 
     // 파싱된 구조화된 데이터를 emit

@@ -2,7 +2,7 @@ import React from 'react'
 import type {AppProps} from 'next/app'
 import {BLEProvider} from '../contexts/BLEContext'
 import {DialogProvider} from '../contexts/DialogContext'
-import {SessionProvider, useSession} from '../contexts/AuthContext'
+import {SessionProvider, useSession} from '../contexts/SessionContext'
 
 import '../styles/globals.css'
 import ThemeToggle from "../components/ThemeToggle";
@@ -12,7 +12,7 @@ import VerifyingPage from './verifying';
 
 // 로그인 상태에 따른 라우팅 컴포넌트
 function AuthenticatedApp({Component, pageProps, router}: AppProps) {
-  const session = useSession();
+  const {session} = useSession();
 
   // 특정 페이지는 인증 체크를 건너뛰기 (예: 예제 페이지들)
   const publicPages = ['/examples/buttons', '/examples/AuditUsageExamples'];
@@ -24,7 +24,7 @@ function AuthenticatedApp({Component, pageProps, router}: AppProps) {
   }
 
   // 로그인 여부에 따라 페이지 결정
-  if (session.user?.name) {
+  if (session?.name) {
     // 로그인된 경우 - verifying 페이지 또는 요청된 컴포넌트
     if (router.pathname === '/home' || router.pathname === '/') {
       return <VerifyingPage />;

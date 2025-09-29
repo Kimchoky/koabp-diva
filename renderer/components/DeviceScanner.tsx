@@ -1,19 +1,20 @@
 import Button from "./ui/Button";
 import {BleResultType, useBLE} from "../contexts/BLEContext";
-import React, {useCallback, useState, useEffect} from "react";
+import React, {useCallback, useEffect, useState} from "react";
 import {useDialog} from "../contexts/DialogContext";
 import {HStack, VStack} from "./ui/Stack";
-import {LucideBluetoothOff, X} from "lucide-react";
+import {X} from "lucide-react";
 import Divider from "./ui/Divider";
-import BatteryIndicator from "./ui/BatteryIndicator";
 import ActivityIndicator from "./ui/ActivityIndicator";
-import DeviceConnected from "./DeviceConnected";
+import {useAudit} from "../contexts/AuditContext";
+import {ActionResult, UserActionType} from "../types/audit";
 
 export default function DeviceScanner() {
 
   const {bleState, startScan, stopScan, connect, connectToRecentDevice, disconnect, getConnectedDevice, recentDevices, removeDeviceFromHistory, clearDeviceHistory} = useBLE();
 
   const dialog = useDialog();
+  const audit = useAudit();
 
   const [isConnecting, setIsConnecting] = useState(false);
   const [showCharacteristics, setShowCharacteristics] = useState(false);
@@ -21,24 +22,60 @@ export default function DeviceScanner() {
 
   // 디버깅용: connectedDevice 상태 변화 추적
   useEffect(() => {
-    console.log('DeviceScanner: connectedDevice changed:', bleState.connectedDevice?.id, bleState.connectedDevice?.name);
-  }, [bleState.connectedDevice]);
+    audit.logDebug('연결된 기기 상태 변화', {
+      data: {
+        deviceId: bleState.connectedDevice?.id,
+        deviceName: bleState.connectedDevice?.name,
+        isConnected: bleState.isConnected,
+      },
+    });
+  }, [bleState.connectedDevice, audit]);
 
   // 연결 해제 완료 감지
   useEffect(() => {
     if (!bleState.isConnected && !bleState.connectedDevice && disconnectResolver) {
-      console.log('Disconnect completed, resolving promise');
+      audit.logDebug('기기 연결 해제 완료');
       disconnectResolver(null);
       setDisconnectResolver(null);
     }
-  }, [bleState.isConnected, bleState.connectedDevice, disconnectResolver]);
+  }, [bleState.isConnected, bleState.connectedDevice, disconnectResolver, audit]);
 
 
   const handleScanStart = async () => {
+    const actionId = audit.startAction(UserActionType.BLE_SCAN_START,
+      '블루투스 기기 스캔 시작',
+      {
+        component: 'DeviceScanner',
+        metadata: {
+          scanDuration: 10000
+        }
+      }
+    );
+
     try {
+      audit.logInfo('BLE 스캔 시작', {
+        actionId,
+        data: { scanDuration: '10초' }
+      });
+
       await startScan(10000) // 10초 스캔
+
+      audit.endAction(actionId, ActionResult.SUCCESS, {
+        metadata: {
+          foundDevices: bleState.scannedDevices.length
+        }
+      });
     } catch (error) {
-      console.error('Scan failed:', error)
+      audit.logError('BLE 스캔 실패', {
+        actionId,
+        error: error.message
+      });
+
+      audit.endAction(actionId, ActionResult.FAILURE, {
+        error: {
+          message: error.message || 'Unknown scan error'
+        }
+      });
     }
   }
 
@@ -51,6 +88,15 @@ export default function DeviceScanner() {
   }
 
   const handleConnect = async (deviceId: string) => {
+    const device = bleState.scannedDevices.find(d => d.id === deviceId);
+
+    audit.logInfo('기기 연결 시도', {
+      data: {
+        deviceId,
+        deviceName: device?.name,
+        isCurrentlyConnected: bleState.isConnected
+      }
+    });
 
     if (bleState.isConnected) {
       dialog.showConfirm('기기 연결', '연결된 기기를 해제하고 선택한 기기로 연결하시겠습니까?', async () => {
@@ -63,13 +109,30 @@ export default function DeviceScanner() {
   }
 
   const connectToDevice = async (deviceId: string) => {
+    const device = bleState.scannedDevices.find(d => d.id === deviceId);
+    const actionId = audit.startAction(
+      UserActionType.BLE_DEVICE_CONNECT,
+      `기기 연결: ${device?.name || deviceId}`,
+      {
+        component: 'DeviceScanner',
+        metadata: {
+          deviceId,
+          deviceName: device?.name,
+          deviceRssi: device?.rssi
+        }
+      }
+    );
+
     await handleScanStop();
     setIsConnecting(true);
 
     try {
       // 기존 연결이 있다면 먼저 해제하고 완료까지 대기
       if (bleState.isConnected) {
-        console.log('Disconnecting current device before connecting to new one');
+        audit.logInfo('기존 연결 해제 중', {
+          actionId,
+          data: { currentDevice: bleState.connectedDevice?.id }
+        });
 
         // Promise를 생성하고 resolver를 저장
         const disconnectPromise = new Promise((resolve) => {
@@ -89,10 +152,26 @@ export default function DeviceScanner() {
       );
       const result = await Promise.race([connectPromise, timeoutPromise]);
       if (!result.success) {
+        audit.endAction(actionId, ActionResult.FAILURE, {
+          error: {
+            message: result.error
+          }
+        });
         dialog.showError('연결 실패', result.error);
+      } else {
+        audit.endAction(actionId, ActionResult.SUCCESS, {
+          metadata: {
+            connectionTime: new Date().toISOString()
+          }
+        });
       }
 
     } catch (error) {
+      audit.endAction(actionId, ActionResult.FAILURE, {
+        error: {
+          message: error?.error ?? '기기 스캔을 재시도해 보시기 바랍니다.'
+        }
+      });
       dialog.showError('연결 실패', (error?.error ?? '기기 스캔을 재시도해 보시기 바랍니다.'))
     } finally {
       setIsConnecting(false);
@@ -132,6 +211,7 @@ export default function DeviceScanner() {
     }
   }, [])
 
+
   return (
     <VStack gap={4}>
 
@@ -140,15 +220,15 @@ export default function DeviceScanner() {
       {recentDevices.length > 0 && (
         <VStack gap={2}>
           <HStack gap={4} justifyContent={"space-between"} alignItems={"flex-end"}>
-            <h3 className="">최근 연결한 기기</h3>
+            <h3 className="">마지막 연결한 기기</h3>
             <Button
               onClick={clearDeviceHistory}
               appearance="outlined"
               mode="error"
               icon="Trash2"
-              size="sm"
+              size="xs"
             >
-              이력 지우기
+              지우기
             </Button>
           </HStack>
 

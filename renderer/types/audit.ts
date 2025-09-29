@@ -31,6 +31,12 @@ export enum UserActionType {
   CUSTOM = 'custom'
 }
 
+export enum ActorType {
+  USER = 'user',  // 사용자가 명시적으로 수행함
+  LOGIC = 'logic',  // 비지니스 플로우에 따른 자동처리
+  SYSTEM = 'system',  // 타임아웃 등에 의한 자동처리
+}
+
 // 로그 레벨
 export enum LogLevel {
   TRACE = 'trace',

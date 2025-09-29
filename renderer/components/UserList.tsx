@@ -1,6 +1,6 @@
 import {HStack, VStack} from "./ui/Stack";
 import {useRouter} from "next/router";
-import {useSession} from "../contexts/AuthContext";
+import {useSession} from "../contexts/SessionContext";
 
 
 export default function UserList() {

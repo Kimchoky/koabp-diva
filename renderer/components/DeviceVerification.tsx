@@ -6,6 +6,8 @@ import Divider from "./ui/Divider";
 import RoundedRadio from "./ui/RoundedRadioGroup";
 import {LucideInfo} from "lucide-react";
 import Tooltip from "./ui/Tooltip";
+import {useDialog} from "../contexts/DialogContext";
+import {useSession} from "../contexts/SessionContext";
 
 const nonImprintedNames = ['KOABP-KB1-', 'KOABP-TP1-', 'KOABP-CP1-'];
 
@@ -14,12 +16,14 @@ type VerificationValueType = true | false | null;
 interface VerificationItem {
   name: string;
   key: VerificationKeyType;
+  action?: () => void;
 }
 export default function DeviceVerification({ enabled }: { enabled?: boolean }) {
 
+  const {uiState} = useSession();
   const {bleState, commandSender} = useBLE();
+  const dialog = useDialog();
 
-  const [factoryMode, setFactoryMode] = useState<boolean|null>(null);
   const [verificationValues, setVerificationValues] = useState<Record<VerificationKeyType, VerificationValueType>>({
     'vrf-pns': null,
     'vrf-mic': null,
@@ -39,9 +43,9 @@ export default function DeviceVerification({ enabled }: { enabled?: boolean }) {
   }, [bleState.connectedDevice, bleState.communicationHealthy, deviceNameImprinted]);
 
   const verificationItems: VerificationItem[] = [
-    { name: 'Pump & Solenoid', key: 'vrf-pns' },
-    { name: 'MIC', key: 'vrf-mic' },
-    { name: 'Charger', key: 'vrf-chrg' },
+    { name: 'Pump & Solenoid', key: 'vrf-pns', action: commandSender.sendVerifyPumpSolenoid},
+    { name: 'MIC', key: 'vrf-mic', action: commandSender.sendVerifyMic },
+    { name: 'Charger', key: 'vrf-chrg', action: commandSender.sendVerifyBattCharger },
     { name: '커프 누기 시험', key: 'vrf-cuff' },
     { name: '정격 초과 측정', key: 'vrf-orm' },
   ]
@@ -59,9 +63,6 @@ export default function DeviceVerification({ enabled }: { enabled?: boolean }) {
   const handleBpStop = () => {
     commandSender.sendBpStop();
   }
-  const handleImprint = () => {
-    commandSender.sendImprintDeviceName(1);
-  }
 
   const handlePassFail = (key: VerificationKeyType, val: string|number|boolean) => {
     setVerificationValues(prev => {
@@ -69,6 +70,10 @@ export default function DeviceVerification({ enabled }: { enabled?: boolean }) {
       newValues[key] = typeof val === 'boolean' ? val : (val === 'true')
       return newValues
     })
+  }
+
+  const handleSaveResults = () => {
+    dialog.showError("Error!", "Not Implemented yet.")
   }
 
   return (
@@ -81,10 +86,11 @@ export default function DeviceVerification({ enabled }: { enabled?: boolean }) {
             delay={0}
             content={
               <div>
-                <h5 className="font-bold">검사 방법</h5>
+                <h5 className="font-bold my-2">검사 방법</h5>
                 <div>
                   <p>Factory Mode로 진입하고, 각 검사항목 버튼을 클릭합니다.</p>
-                  <p>결과가 확인되면 검사결과를 선택하고 결과저장 버튼을 클릭합니다.</p>
+                  <p>결과가 확인되면 검사 결과(Pass/Fail)를 선택하고 결과 저장 버튼을 클릭합니다.
+                  </p>
                 </div>
               </div>
             }
@@ -95,9 +101,9 @@ export default function DeviceVerification({ enabled }: { enabled?: boolean }) {
         <HStack gap={4}>
           <h4>Factory Mode : </h4>
           <div>
-            { factoryMode === true && <span>ON</span> }
-            { factoryMode === false && <span>OFF</span> }
-            { factoryMode === null && <span>Unknown</span> }
+            { uiState.factoryMode === 'on' && <span className={"font-bold text-green-500"}>ON</span> }
+            { uiState.factoryMode === 'off' && <span className={"font-bold text-red-500"}>OFF</span> }
+            { uiState.factoryMode === 'unknown' && <span className={"font-bold text-gray-500"}>Unknown</span> }
           </div>
           <Divider vertical />
           <div className={"flex"}>
@@ -126,7 +132,12 @@ export default function DeviceVerification({ enabled }: { enabled?: boolean }) {
             {verificationItems.map((item, index) => (
               <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                 <td className="border border-gray-300 dark:border-gray-600 px-4 py-3">
-                  <Button mode="primary" className="w-full">{item.name}</Button>
+                  { item.action ? (
+                      <Button mode="primary" onClick={item.action} className="w-full">{item.name}</Button>
+                    ):(
+                      item.name
+                    )
+                  }
                 </td>
                 <td className="border border-gray-300 dark:border-gray-600">
                   <div className={"flex justify-center"}>
@@ -171,6 +182,7 @@ export default function DeviceVerification({ enabled }: { enabled?: boolean }) {
           size={"md"}
           disabled={isDisabled}
           className={"self-end min-w-12 w-1/3"}
+          onClick={handleSaveResults}
         >
           결과 저장
         </Button>

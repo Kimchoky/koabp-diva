@@ -1,8 +1,14 @@
-import { ParsedData, BLEDevice, BLEState } from '../contexts/BLEContext';
-import { ResponseType } from '../../main/ble/ble-protocol';
+import {BLEState, ParsedData} from '../contexts/BLEContext';
+import {UiStateType} from "../contexts/SessionContext";
+
+export interface DataProcessorStates {
+  bleState: BLEState;
+  uiState: UiStateType;
+}
 
 export interface DataProcessorCallbacks {
   setBleState: (updater: (prev: BLEState) => BLEState) => void;
+  setUiState: (updater: (prev: UiStateType) => UiStateType) => void;
   addLog: (message: string) => void;
   disconnect: () => Promise<any>;
 }
@@ -10,9 +16,11 @@ export interface DataProcessorCallbacks {
 export class BLEDataProcessor {
   private batteryTimeoutRef: NodeJS.Timeout | null = null;
   private readonly BATTERY_TIMEOUT_MS = 5000;
+  private states: DataProcessorStates;
   private callbacks: DataProcessorCallbacks;
 
-  constructor(callbacks: DataProcessorCallbacks) {
+  constructor(states: DataProcessorStates, callbacks: DataProcessorCallbacks) {
+    this.states = states;
     this.callbacks = callbacks;
   }
 
@@ -79,27 +87,32 @@ export class BLEDataProcessor {
   };
 
   processDeviceDataParsed = ({ characteristicUuid, parsedData }: { characteristicUuid: string, parsedData: ParsedData }) => {
-    if (parsedData.type === 'firmwareStatus') {
+    if (parsedData.type === 'batteryInfo') {
       this.onBatteryDataReceived(parsedData);
     }
     else if (parsedData.type === 'response') {
       const command = parsedData.payload.command;
-      const response: ResponseType = parsedData.payload.response;
-
-      if (response === 'ACK') {
-        switch (command) {
-          case 0x10: {
-            this.callbacks.setBleState(prev => ({ ...prev, factoryMode: 'on' }));
-            break;
-          }
-          case 0x11: {
-            this.callbacks.setBleState(prev => ({ ...prev, factoryMode: 'off' }));
-            break;
-          }
-          case 0x7c: {
-            this.callbacks.disconnect();
-            break;
-          }
+      switch (command) {
+        case 'factoryModeOn': {
+          this.callbacks.setUiState(prev => ({ ...prev, factoryMode: 'on' }));
+          break;
+        }
+        case 'factoryModeOff': {
+          this.callbacks.setUiState(prev => ({ ...prev, factoryMode: 'off' }));
+          break;
+        }
+        case 'tpImprint': {
+          this.applyDeviceImprinting('TP-1');
+          break;
+        }
+        case 'cpImprint': {
+          this.applyDeviceImprinting('CP-1');
+          break;
+        }
+        case 'kbImprint': {
+          this.applyDeviceImprinting('KB-1');
+          this.callbacks.disconnect();
+          break;
         }
       }
     }
@@ -107,6 +120,19 @@ export class BLEDataProcessor {
       this.callbacks.setBleState(prev => ({ ...prev, lastParsedData: parsedData }));
     }
   };
+
+  applyDeviceImprinting = (type: DeviceType) => {
+    const connDevice = this.states.bleState.connectedDevice;
+    this.callbacks.setUiState(prev => ({
+      ...prev,
+      imprintDevice: {
+        type,
+        id: connDevice.id,
+        name: connDevice.name,
+        timestamp: new Date()
+      }
+    }));
+  }
 
   cleanup = () => {
     if (this.batteryTimeoutRef) {

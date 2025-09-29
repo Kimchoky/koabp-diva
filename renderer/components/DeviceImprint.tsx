@@ -21,35 +21,27 @@ export default function DeviceImprint() {
   const api = useApi();
 
   const [deviceUniqueNumbers, setDeviceUniqueNumbers] = useState<number[]>([]);
-  const [deviceUniqueNumber, setDeviceUniqueNumber] = useState<number>(0);
+  const [deviceUniqueName, setDeviceUniqueName] = useState<string>('');
   const [deviceType, setDeviceType] = useState<DeviceType>("KB-1");
 
 
   const imprintable = useMemo<boolean>(() => {
-    return deviceUniqueNumber > 0 && bleState.connectedDevice && bleState.communicationHealthy
-  }, [deviceUniqueNumber, bleState.connectedDevice, bleState.communicationHealthy]);
+    const suitableName = /^[0-9A-F]+$/.test(deviceUniqueName)
+    return bleState.connectedDevice && bleState.communicationHealthy && suitableName
+  }, [deviceUniqueName, bleState.connectedDevice, bleState.communicationHealthy]);
 
-  const deviceImprints: DeviceImprintType[] = [
-    {deviceType: 'KB-1'},
-    {deviceType: 'TP-1'},
-    {deviceType: 'CP-1'},
-  ]
   const handleNextNumber = () => {
     const nextNumber = getNextDeviceNumber(deviceType);
   }
-  const handleImprint = () => {
-    if (deviceUniqueNumber < 0 || deviceUniqueNumber > 999999) {
-      dialog.showError('오류', '입력한 번호가 범위를 벗어났습니다.');
-      return;
-    }
-
-    if (checkDeviceNumberExists(deviceUniqueNumber)) {
+  const handleImprint = async () => {
+    if (checkDeviceNumberExists(deviceUniqueName)) {
       dialog.showError('오류', '이미 등록된 번호입니다.');
       return;
     }
 
     // all OK.
-    commandSender.sendImprintDeviceName(deviceUniqueNumber);
+    await commandSender.sendImprintDeviceName(deviceType, deviceUniqueName);
+
   }
 
   return (
@@ -64,10 +56,11 @@ export default function DeviceImprint() {
             delay={0}
             content={
               <div>
-                <h5 className="font-bold">주의사항</h5>
+                <h5 className="font-bold my-2">주의사항</h5>
                 <div>
-                  <p>ID가 전송되면 자동으로 연결이 끊어지고, 기기가 재시작됩니다.</p>
-                  <p>잠시 기다린 후, 스캔하여 새로운 이름의 기기를 재연결하시기 바랍니다.</p>
+                  <p>ID가 전송되면 자동으로 연결이 끊어지고, </p>
+                  <p>모델에 따라 기기가 꺼지거나(TP-1, CP-1) 재시작(KB-1, CA-100)됩니다.</p>
+                  <p>이후 기기를 다시 스캔하여 새로운 이름의 기기를 연결하시기 바랍니다.</p>
                 </div>
               </div>
             }
@@ -106,14 +99,14 @@ export default function DeviceImprint() {
                     border border-border-light dark:border-border-dark rounded focus:outline-none focus:border-blue-500
                     bg-transparent text-primary disabled:text-border-light disabled:cursor-not-allowed
                   `}
-                  value={deviceUniqueNumber}
+                  value={deviceUniqueName}
                   onChange={(e) => {
-                    const numericValue = e.target.value.replace(/[^0-9]/g, '');
-                    setDeviceUniqueNumber(Number(numericValue));
+                    const numericValue = e.target.value.replace(/[^0-9a-fA-F]/g, '').toUpperCase()
+                    setDeviceUniqueName(numericValue);
                   }}
                   type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
+                  inputMode="text"
+                  pattern="[0-9A-F]*"
                   maxLength={6}
                   disabled={!bleState.connectedDevice || !bleState.communicationHealthy}
                 />

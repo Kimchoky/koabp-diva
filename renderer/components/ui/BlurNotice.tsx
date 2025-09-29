@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { forwardRef, useImperativeHandle, useState } from 'react'
 import { X, AlertCircle, CheckCircle, Info, AlertTriangle } from 'lucide-react'
 import { DialogOptions } from '../../contexts/DialogContext'
 
@@ -8,6 +8,22 @@ interface DialogProps {
   onConfirm: () => void
   onCancel: () => void
   onClose: () => void
+}
+
+export interface ModalComponentProps {
+  onClose: () => void
+  onConfirm?: (data?: any) => void
+  onCancel?: () => void
+}
+
+export interface CustomModalRef {
+  open: () => void
+  close: () => void
+  isOpen: boolean
+}
+
+interface CustomModalProps {
+  component: React.ComponentType<ModalComponentProps>
 }
 
 const getTypeStyles = (type: string) => {
@@ -113,3 +129,43 @@ export default function Dialog({ isOpen, options, onConfirm, onCancel, onClose }
     </div>
   )
 }
+
+export const CustomModal = forwardRef<CustomModalRef, CustomModalProps>(
+  ({ component: Component }, ref) => {
+    const [isOpen, setIsOpen] = useState(false)
+
+    useImperativeHandle(ref, () => ({
+      open: () => setIsOpen(true),
+      close: () => setIsOpen(false),
+      isOpen
+    }))
+
+    const handleClose = () => {
+      setIsOpen(false)
+    }
+
+    const handleConfirm = (data?: any) => {
+      setIsOpen(false)
+    }
+
+    const handleCancel = () => {
+      setIsOpen(false)
+    }
+
+    if (!isOpen) return null
+
+    return (
+      <div className="fixed inset-0 z-50 backdrop-blur-sm flex justify-center items-center">
+        <div onClick={(e) => e.stopPropagation()}>
+          <Component
+            onClose={handleClose}
+            onConfirm={handleConfirm}
+            onCancel={handleCancel}
+          />
+        </div>
+      </div>
+    )
+  }
+)
+
+CustomModal.displayName = 'CustomModal'

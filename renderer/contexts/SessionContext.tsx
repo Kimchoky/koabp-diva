@@ -1,25 +1,43 @@
 import React, {createContext, ReactNode, useCallback, useContext, useState} from 'react'
 
-export interface SessionInfo {
+export interface SessionInfoType {
   name: string;
   loginTime: Date;
   workCount: number;
 }
 
+export interface ImprintDeviceType {
+  type: DeviceType;
+  id: string;
+  name: string;
+  timestamp: Date;
+}
+
+export interface UiStateType {
+  factoryMode: 'on' | 'off' | 'unknown'
+  imprintDevice: ImprintDeviceType | null
+}
+
 interface SessionContextType {
-  user: SessionInfo | null;
-  login: (user: SessionInfo) => void;
+  session: SessionInfoType | null;
+  login: (user: SessionInfoType) => void;
   logout: () => void;
   isAuthenticated: boolean;
   increaseWorkCount: () => void;
+  uiState: UiStateType;
+  setUiState: React.Dispatch<React.SetStateAction<UiStateType>>;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined)
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<SessionInfo | null>(null)
+  const [session, setSession] = useState<SessionInfoType | null>(null)
+  const [uiState, setUiState] = useState<UiStateType>({
+    factoryMode: 'unknown',
+    imprintDevice: null
+  })
 
-  const login = useCallback((_session: SessionInfo) => {
+  const login = useCallback((_session: SessionInfoType) => {
     setSession({
       ..._session,
       loginTime: new Date(),
@@ -41,11 +59,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }
 
   const value: SessionContextType = {
-    user: session,
+    session,
     login,
     logout,
     isAuthenticated,
     increaseWorkCount,
+    uiState, setUiState,
   }
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

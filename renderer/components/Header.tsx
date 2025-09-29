@@ -1,6 +1,6 @@
 import React, {useEffect, useMemo, useRef, useState} from "react";
 import {HStack, VStack} from "./ui/Stack";
-import {useSession, SessionInfo} from "../contexts/AuthContext";
+import {useSession, SessionInfoType} from "../contexts/SessionContext";
 import Divider from "./ui/Divider";
 import Button from "./ui/Button";
 import {LucideBluetoothOff, LucideBluetoothSearching, X} from "lucide-react";
@@ -41,8 +41,13 @@ const UserMenu = ({setShowUserMenu}: { setShowUserMenu: (_: boolean) => void }) 
   }
 
   useEffect(() => {
+
+    const loginTime = session?.session?.loginTime || new Date()
+    const t = new Date().getTime() - loginTime.getTime();
+    setTimeElapsed(t)
+
     timeIntervalRef.current = window.setInterval(() => {
-      const loginTime = session?.user?.loginTime || new Date()
+      const loginTime = session?.session?.loginTime || new Date()
       const t = new Date().getTime() - loginTime.getTime();
       setTimeElapsed(t)
     }, 1000)
@@ -62,7 +67,7 @@ const UserMenu = ({setShowUserMenu}: { setShowUserMenu: (_: boolean) => void }) 
         <HStack gap={1}>
           <span className="w-[5em]">로그인 시각</span>
           <Divider vertical/>
-          <span>{session?.user?.loginTime?.toLocaleString()}</span>
+          <span>{session?.session?.loginTime?.toLocaleString()}</span>
         </HStack>
         <HStack gap={1}>
           <span className="w-[5em]">세션 시간</span>
@@ -117,7 +122,7 @@ export default function Header() {
           className="cursor-pointer "
           onClick={() => setShowUserMenu(true)}
         >
-          {session.user?.name}
+          {session.session?.name}
         </Button>
         {showUserMenu &&
           <UserMenu setShowUserMenu={setShowUserMenu}/>
