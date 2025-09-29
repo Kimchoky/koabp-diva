@@ -6,6 +6,7 @@ import { BLEManager } from './ble/ble-manager'
 import { registerApiHandlers } from './ipc-handlers/api-handler'
 import { setupBLEEventHandlers } from './ble/ble-events'
 import { registerBLEHandlers } from './ble/ble-ipc-handlers'
+import { registerKeytarHandlers } from './ipc-handlers/keytar-handler'
 
 const isProd = process.env.NODE_ENV === 'production'
 
@@ -50,6 +51,7 @@ let bleManager: BLEManager
   // Register all IPC handlers
   registerApiHandlers()
   registerBLEHandlers(bleManager)
+  registerKeytarHandlers()
 
   // Setup BLE event handlers after the window has finished loading
   mainWindow.webContents.on('did-finish-load', () => {

@@ -55,20 +55,36 @@ export class BLEDataProcessor {
       const currBatteryLevel = prev.connectedDevice.batteryLevel;
       const newBatteryLevel = parsedData.payload.batteryLevel;
 
+      // 배터리 레벨이 변경된 경우에만 업데이트
+      let shouldUpdateBattery = false;
       if (!currBatteryLevel || (newBatteryLevel !== currBatteryLevel)) {
         newState.connectedDevice = {
           ...prev.connectedDevice,
           batteryLevel: newBatteryLevel
         };
+        shouldUpdateBattery = true;
         this.callbacks.addLog(`Updating battery level for ${prev.connectedDevice.name} to ${newBatteryLevel}%`);
       }
 
-      return {
-        ...prev,
-        ...newState,
-        communicationHealthy: true,
-        lastBatteryDataTime: now,
-      };
+      // 통신 상태가 변경된 경우에만 업데이트
+      const shouldUpdateHealthy = !prev.communicationHealthy;
+
+      // 마지막 수신 시간은 1초 이상 차이가 날 때만 업데이트 (UI 깜빡임 방지)
+      const shouldUpdateTime = !prev.lastBatteryDataTime ||
+        (now.getTime() - prev.lastBatteryDataTime.getTime()) > 1000;
+
+      // 변경사항이 있을 때만 상태 업데이트
+      if (shouldUpdateBattery || shouldUpdateHealthy || shouldUpdateTime) {
+        return {
+          ...prev,
+          ...newState,
+          communicationHealthy: true,
+          lastBatteryDataTime: shouldUpdateTime ? now : prev.lastBatteryDataTime,
+        };
+      }
+
+      // 변경사항이 없으면 기존 상태 유지
+      return prev;
     });
 
     this.startBatteryTimeout();
@@ -87,6 +103,7 @@ export class BLEDataProcessor {
   };
 
   processDeviceDataParsed = ({ characteristicUuid, parsedData }: { characteristicUuid: string, parsedData: ParsedData }) => {
+    console.log('processDeviceDataParsed', parsedData);
     if (parsedData.type === 'batteryInfo') {
       this.onBatteryDataReceived(parsedData);
     }
@@ -121,6 +138,10 @@ export class BLEDataProcessor {
     }
   };
 
+  /**
+   * Name 설정에 대한 응답 후 처리. UI 처리를 위해 상태값을 변화시킨다.
+   * @param type
+   */
   applyDeviceImprinting = (type: DeviceType) => {
     const connDevice = this.states.bleState.connectedDevice;
     this.callbacks.setUiState(prev => ({
@@ -129,7 +150,7 @@ export class BLEDataProcessor {
         type,
         id: connDevice.id,
         name: connDevice.name,
-        timestamp: new Date()
+        timestamp: new Date().getTime()
       }
     }));
   }

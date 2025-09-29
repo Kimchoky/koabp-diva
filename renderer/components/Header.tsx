@@ -1,6 +1,6 @@
 import React, {useEffect, useMemo, useRef, useState} from "react";
 import {HStack, VStack} from "./ui/Stack";
-import {useSession, SessionInfoType} from "../contexts/SessionContext";
+import {useSession, SessionType} from "../contexts/SessionContext";
 import Divider from "./ui/Divider";
 import Button from "./ui/Button";
 import {LucideBluetoothOff, LucideBluetoothSearching, X} from "lucide-react";
@@ -10,9 +10,28 @@ import Tooltip from "./ui/Tooltip";
 
 const UserMenu = ({setShowUserMenu}: { setShowUserMenu: (_: boolean) => void }) => {
 
+  const session = useSession();
+  const {disconnect} = useBLE();
   const [timeElapsed, setTimeElapsed] = useState(0);
   const timeIntervalRef = useRef(null);
-  const session = useSession();
+
+  // JWT 토큰 파싱 함수
+  const parseJWT = (token: string) => {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      return JSON.parse(jsonPayload);
+    } catch (error) {
+      console.error('JWT 파싱 실패:', error);
+      return null;
+    }
+  };
 
   // 시간을 human-readable 형태로 변환
   const formatElapsedTime = (milliseconds: number): string => {
@@ -36,15 +55,30 @@ const UserMenu = ({setShowUserMenu}: { setShowUserMenu: (_: boolean) => void }) 
     return parts.slice(0, 3).join(' ') || '0초';
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await disconnect();
     session.logout();
   }
+
+  const tokenExpiresAt = useMemo(() => {
+    if (!session.session.user?.token) {
+      return '';
+    }
+    const parsed = parseJWT(session.session.user.token)
+    return parsed.exp
+  }, [session.session.user.token]);
 
   useEffect(() => {
 
     const loginTime = session?.session?.loginTime || new Date()
     const t = new Date().getTime() - loginTime.getTime();
     setTimeElapsed(t)
+
+    // JWT 토큰 파싱 및 콘솔 출력
+    if (session?.session?.user?.token) {
+      const parsedToken = parseJWT(session.session.user.token);
+      console.log('JWT 토큰 데이터:', parsedToken);
+    }
 
     timeIntervalRef.current = window.setInterval(() => {
       const loginTime = session?.session?.loginTime || new Date()
@@ -57,6 +91,7 @@ const UserMenu = ({setShowUserMenu}: { setShowUserMenu: (_: boolean) => void }) 
     }
   }, []);
 
+  
   return (
     <VStack appearance="surface"
             alignItems="center"
@@ -73,6 +108,11 @@ const UserMenu = ({setShowUserMenu}: { setShowUserMenu: (_: boolean) => void }) 
           <span className="w-[5em]">세션 시간</span>
           <Divider vertical/>
           <span>{formatElapsedTime(timeElapsed)}</span>
+        </HStack>
+        <HStack gap={1}>
+          <span className="w-[5em]">세션 종료</span>
+          <Divider vertical/>
+          <span>{formatElapsedTime(tokenExpiresAt)}</span>
         </HStack>
       </VStack>
       <Divider/>
@@ -122,7 +162,7 @@ export default function Header() {
           className="cursor-pointer "
           onClick={() => setShowUserMenu(true)}
         >
-          {session.session?.name}
+          {session.session.user.name}
         </Button>
         {showUserMenu &&
           <UserMenu setShowUserMenu={setShowUserMenu}/>

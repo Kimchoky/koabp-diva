@@ -21,7 +21,7 @@ export const createCommandSender = (
     addLog('Sending: Factory Mode Off');
     return writeData(UUID_CHARACTERISTIC_CUSTOM_TOTAL_WRITE, COMMANDS.factoryModeOff);
   },
-  sendImprintDeviceName: (deviceType: DeviceType, name: string) => {
+  sendImprintDeviceName: (deviceType: DeviceType, deviceAsciiPart: string) => {
 
     let imprintCommand = null;
 
@@ -29,15 +29,14 @@ export const createCommandSender = (
     if (deviceType === 'CP-1') imprintCommand = COMMANDS.cpImprint;
     if (deviceType === 'KB-1') imprintCommand = COMMANDS.kbImprint;
 
-    const [hi, mid, low] = hexToBcdBytes(name)
+    const [hi, mid, low] = hexToBcdBytes(deviceAsciiPart)
 
     imprintCommand[4] = hi;
     imprintCommand[5] = mid;
     imprintCommand[6] = low;
 
-    addLog(`Sending: Imprint Device Name ${name} => ${hi}, ${mid}, ${low}`);
-    console.log(`Sending: Imprint Device Name ${name} => ${hi}, ${mid}, ${low}`);
-    console.log(imprintCommand);
+    addLog(`Sending: Imprint Device Name ${deviceAsciiPart} => ${hi}, ${mid}, ${low}`);
+    console.log(`Sending: Imprint Device Name ${deviceAsciiPart} => ${hi}, ${mid}, ${low}`);
     return writeData(UUID_CHARACTERISTIC_CUSTOM_TOTAL_WRITE, imprintCommand);
   },
 

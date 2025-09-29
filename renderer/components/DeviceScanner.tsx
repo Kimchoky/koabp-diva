@@ -57,8 +57,9 @@ export default function DeviceScanner() {
         actionId,
         data: { scanDuration: '10초' }
       });
-
-      await startScan(10000) // 10초 스캔
+// 6e400001b5a3f393e0a9e50e24dcca9e
+// 6e400001b5a3f393e0a9e50e24dcca9e
+      await startScan([], 10000) // 10초 스캔
 
       audit.endAction(actionId, ActionResult.SUCCESS, {
         metadata: {
@@ -220,7 +221,7 @@ export default function DeviceScanner() {
       {recentDevices.length > 0 && (
         <VStack gap={2}>
           <HStack gap={4} justifyContent={"space-between"} alignItems={"flex-end"}>
-            <h3 className="">마지막 연결한 기기</h3>
+            <h3 className="text-primary font-bold">마지막 연결한 기기</h3>
             <Button
               onClick={clearDeviceHistory}
               appearance="outlined"
@@ -284,7 +285,7 @@ export default function DeviceScanner() {
       <VStack gap={2}>
 
         <HStack gap={4} justifyContent={"space-between"} alignItems={"flex-end"}>
-          <h3 className="">찾은 기기 목록</h3>
+          <h3 className="text-primary font-bold">찾은 기기 목록</h3>
           {!bleState.isScanning ? (
           <Button
             onClick={handleScanStart}

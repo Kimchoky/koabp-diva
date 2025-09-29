@@ -1,73 +1,98 @@
-import { useQuery, useMutation } from '../hooks/useQuery';
-import { queryFunctions, User, Product } from './api-client';
-import { ApiError } from './api-config';
+/**
+ * API 쿼리 함수 모음
+ * 직관적인 함수명으로 API를 호출합니다.
+ */
 
+import { apiClient } from './api-client';
+import {BLEDeviceData, BLEDeviceFilter, CreateBLEDeviceInput, UpdateBLEDeviceInput, UserInfo} from "../types/api";
 
-export const checkDeviceNumberExists = (deviceNumber: string) => {
+// ========================================
+// BLE Devices API
+// ========================================
 
-  //TODO: implement API
-  // return useQuery(`device/${deviceNumber}`)
+/**
+ *  BLE 디바이스 목록 조회
+ * @param filter - 필터 옵션 (deviceName, author, deviceType)
+ * @example
+ * const devices = await getDevices({ deviceType: 'KB-1' });
+ */
+export const getDevices = async (filter?: BLEDeviceFilter): Promise<BLEDeviceData[]> => {
+  return apiClient.get<BLEDeviceData[]>('devices', filter);
+};
 
-  return false;
+/**
+ * 신규 BLE 디바이스 등록
+ * @param deviceData - 디바이스 정보
+ * @example
+ * const device = await postDevice({
+ *   deviceName: 'KOABP-KB1-5302',
+ *   deviceId: 'abc123',
+ *   deviceType: 'KB-1'
+ * });
+ */
+export const postDevice = async (deviceData: CreateBLEDeviceInput): Promise<BLEDeviceData> => {
+  return apiClient.post<BLEDeviceData>('devices', deviceData);
+};
+
+/**
+ * BLE 디바이스 업데이트.
+ * @param deviceData - 디바이스 정보
+ * @example
+ * const device = await postDevice({
+ *   deviceName: 'KOABP-KB1-5302',
+ *   deviceId: 'abc123',
+ *   deviceType: 'KB-1'
+ * });
+ */
+export const putDevice = async (filter: BLEDeviceFilter, deviceData: UpdateBLEDeviceInput): Promise<BLEDeviceData> => {
+  return apiClient.put<BLEDeviceData>('devices', { filter, deviceData });
+};
+
+// ========================================
+// Auth API
+// ========================================
+
+/**
+ * API 키 유효성 검증
+ * @param key - 검증할 API 키
+ * @returns 유효하면 true, 아니면 false
+ * @example
+ * const isValid = await validateApiKey('your-api-key');
+ */
+export const validateApiKey = async (key: string): Promise<boolean> => {
+  try {
+    // 검증할 키를 헤더에 명시적으로 전달 (기본 API 키 대신)
+    await apiClient.get<{ message: string }>('auth/check-key', undefined, {
+      'X-API-KEY': key,
+    });
+    return true;
+  } catch (error) {
+    console.error('API key validation error:', error);
+    return false;
+  }
+};
+
+/**
+ * User 목록 조회
+ * @returns UserInfo[]
+ */
+export const getUsers = async (): Promise<UserInfo[]> => {
+  return apiClient.get<UserInfo[]>('users')
+};
+
+/**
+ * Login
+ * @param email
+ * @param password
+ */
+export const postLogin = async (email: string, password: string): Promise<UserInfo> => {
+  return apiClient.post<UserInfo>('auth/login', { email, password });
 }
 
-export const getNextDeviceNumber = (deviceType: DeviceType): number => {
-  // TODO: implement API
-  return 5177;
+export const getMe = async (): Promise<UserInfo> => {
+  return apiClient.get<UserInfo>('auth/me');
 }
 
-export function useUsers() {
-  return useQuery<User[]>('users');
-}
-
-export function useUser(id: string, enabled = true) {
-  return useQuery<User>(`users/${id}`, { enabled });
-}
-
-export function useProducts(params?: { category?: string; limit?: number }) {
-  const queryKey = params
-    ? `products?${new URLSearchParams(params as Record<string, string>).toString()}`
-    : 'products';
-
-  return useQuery<Product[]>(queryKey);
-}
-
-export function useProduct(id: string, enabled = true) {
-  return useQuery<Product>(`products/${id}`, { enabled });
-}
-
-export function useHealth() {
-  return useQuery<{ status: string; timestamp: string }>('health', {
-    refetchOnWindowFocus: true,
-  });
-}
-
-export function useCreateUser(options?: {
-  onSuccess?: (user: User) => void;
-  onError?: (error: ApiError) => void;
-}) {
-  return useMutation<User, Partial<User>>(
-    (userData) => queryFunctions.createUser(userData),
-    options
-  );
-}
-
-export function useUpdateUser(options?: {
-  onSuccess?: (user: User) => void;
-  onError?: (error: ApiError) => void;
-}) {
-  return useMutation<User, { id: string; data: Partial<User> }>(
-    ({ id, data }) => queryFunctions.updateUser(id, data),
-    options
-  );
-}
-
-export function useDeleteUser(options?: {
-  onSuccess?: (result: { success: boolean }) => void;
-  onError?: (error: ApiError) => void;
-}) {
-  return useMutation<{ success: boolean }, string>(
-    (id) => queryFunctions.deleteUser(id),
-    options
-  );
+export const getNextDeviceSerial = async (deviceType: DeviceType): Promise<{ nextDeviceSerial: string }> => {
+  return apiClient.get<{nextDeviceSerial: string}>(`device-serial/next/${deviceType}`)
 }

@@ -20,7 +20,7 @@ const handler = {
 
 const bleHandler = {
   getState: () => ipcRenderer.invoke('ble-get-state'),
-  startScan: (timeout?: number) => ipcRenderer.invoke('ble-start-scan', timeout),
+  startScan: (filterServices: string[], timeout?: number) => ipcRenderer.invoke('ble-start-scan', filterServices, timeout),
   stopScan: () => ipcRenderer.invoke('ble-stop-scan'),
   connect: (deviceId: string) => ipcRenderer.invoke('ble-connect', deviceId),
   disconnect: () => ipcRenderer.invoke('ble-disconnect'),
@@ -91,8 +91,16 @@ const bleHandler = {
   readRSSI: () => ipcRenderer.invoke('ble-read-rssi'),
 }
 
+const keytarHandler = {
+  getApiKey: () => ipcRenderer.invoke('keytar:get-api-key'),
+  setApiKey: (key: string) => ipcRenderer.invoke('keytar:set-api-key', key),
+  deleteApiKey: () => ipcRenderer.invoke('keytar:delete-api-key'),
+}
+
 contextBridge.exposeInMainWorld('ipc', handler)
 contextBridge.exposeInMainWorld('ble', bleHandler)
+contextBridge.exposeInMainWorld('keytar', keytarHandler)
 
 export type IpcHandler = typeof handler
 export type BleHandler = typeof bleHandler
+export type KeytarHandler = typeof keytarHandler

@@ -6,9 +6,9 @@ export function registerBLEHandlers(bleManager: BLEManager) {
     return bleManager.getState()
   })
 
-  ipcMain.handle('ble-start-scan', async (event, timeout) => {
+  ipcMain.handle('ble-start-scan', async (event, filterServices, timeout) => {
     try {
-      await bleManager.startScan(timeout)
+      await bleManager.startScan(filterServices, timeout)
       return { success: true }
     } catch (error) {
       return { success: false, error: error.message }

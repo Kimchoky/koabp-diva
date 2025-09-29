@@ -80,7 +80,7 @@ export default function DeviceVerification({ enabled }: { enabled?: boolean }) {
     <VStack gap={8}>
       <HStack gap={2} alignItems={"baseline"} justifyContent={"space-between"}>
         <div>
-          <h3 className={"pb-4 inline"}>기기 검사</h3>
+          <h3 className={"text-primary font-bold pb-4 inline"}>기기 검사</h3>
           <Tooltip
             position="bottomLeft"
             delay={0}
@@ -107,8 +107,8 @@ export default function DeviceVerification({ enabled }: { enabled?: boolean }) {
           </div>
           <Divider vertical />
           <div className={"flex"}>
-            <Button mode="success" onClick={handleFactoryModeOn}>On</Button>
-            <Button mode="error" onClick={handleFactoryModeOff}>Off</Button>
+            <Button mode="success" onClick={handleFactoryModeOn} disabled={isDisabled}>On</Button>
+            <Button mode="error" onClick={handleFactoryModeOff} disabled={isDisabled}>Off</Button>
           </div>
         </HStack>
       </HStack>
@@ -133,7 +133,7 @@ export default function DeviceVerification({ enabled }: { enabled?: boolean }) {
               <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                 <td className="border border-gray-300 dark:border-gray-600 px-4 py-3">
                   { item.action ? (
-                      <Button mode="primary" onClick={item.action} className="w-full">{item.name}</Button>
+                      <Button mode="primary" onClick={item.action} className="w-full" disabled={isDisabled}>{item.name}</Button>
                     ):(
                       item.name
                     )

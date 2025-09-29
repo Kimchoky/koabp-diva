@@ -153,7 +153,7 @@ export class BLEManager extends EventEmitter {
     })
   }
 
-  async startScan(timeout?: number): Promise<void> {
+  async startScan(filterServices: string[] = [], timeout?: number): Promise<void> {
     return new Promise((resolve, reject) => {
       if (noble._state !== 'poweredOn') {
         reject(new Error('BLE is not powered on'))
@@ -163,7 +163,7 @@ export class BLEManager extends EventEmitter {
       console.log('Starting BLE scan...')
       // Clear previously discovered peripherals
       this.discoveredPeripherals.clear()
-      noble.startScanning([], false)
+      noble.startScanning(filterServices, false)
 
       if (timeout) {
         setTimeout(() => {

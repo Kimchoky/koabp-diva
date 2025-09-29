@@ -65,7 +65,7 @@ const RoundedRadioItem = ({
       <button
         onClick={handleClick}
         disabled={disabled}
-        className={`px-4 py-1 transition-colors disabled:bg-gray-500/25 disabled:cursor-not-allowed flex-1 ${
+        className={`py-1 transition-colors disabled:bg-gray-500/25 disabled:cursor-not-allowed flex-1 ${
           isSelected
             ? 'bg-primary text-white'
             : 'hover:bg-gray-100 dark:hover:bg-gray-700'

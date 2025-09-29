@@ -1,5 +1,6 @@
-import React, { forwardRef } from "react";
+import React, {forwardRef, useState} from "react";
 import { cn } from "../utils/cn";
+import {LucideEye, LucideEyeOff} from "lucide-react";
 
 type TextInputSizeTypes = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 type TextInputVariantTypes = 'contained' | 'outlined';
@@ -10,18 +11,22 @@ interface TextInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement
   error?: boolean;
   helperText?: string;
   label?: string;
+  isPassword?: boolean;
 }
 
 const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
   ({
     size = 'md',
-    variant = 'contained',
+    variant = 'outlined',
     error = false,
     helperText,
     label,
+    isPassword = false,
     className,
     ...props
   }, ref) => {
+
+    const [passwordVisible, setPasswordVisible] = useState(false);
 
     // 사이즈별 클래스 정의
     const sizeClasses = {
@@ -33,20 +38,20 @@ const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
     };
 
     // 기본 클래스
-    const baseClasses = "rounded font-medium transition-all duration-200 outline-none focus:ring-2";
+    const baseClasses = "rounded font-medium transition-all duration-200 outline-none focus:ring-2 w-full";
 
     // 변형별 클래스
     const variantClasses = {
       contained: `
-        bg-[--color-surface-light] dark:bg-[--color-surface-dark]
-        text-[--color-text-light] dark:text-[--color-text-dark]
+        bg-surface-light dark:bg-surface-dark
+        text-text-light dark:text-text-dark
         border border-transparent
         focus:ring-blue-500/30 focus:border-blue-500
       `,
       outlined: `
         bg-transparent
-        border border-[--color-border-light] dark:border-[--color-border-dark]
-        text-[--color-text-light] dark:text-[--color-text-dark]
+        border border-border-light dark:border-border-dark
+        text-text-light dark:text-text-dark
         focus:ring-blue-500/30 focus:border-blue-500
       `
     };
@@ -63,26 +68,42 @@ const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
       disabled:bg-gray-100 dark:disabled:bg-gray-800
     `;
 
+    const {type, placeholder, ...restProps} = props;
     return (
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1 relative">
         {label && (
-          <label className="text-sm font-medium text-[--color-text-light] dark:text-[--color-text-dark]">
+          <label className="text-sm font-medium text-text-light dark:text-text-dark">
             {label}
           </label>
         )}
 
-        <input
-          ref={ref}
-          className={cn(
-            baseClasses,
-            sizeClasses[size as TextInputSizeTypes],
-            variantClasses[variant],
-            errorClasses,
-            disabledClasses,
-            className
+        <div className="relative">
+          <input
+            ref={ref}
+            className={cn(
+              baseClasses,
+              sizeClasses[size as TextInputSizeTypes],
+              variantClasses[variant],
+              errorClasses,
+              disabledClasses,
+              "pr-10",
+              className,
+            )}
+            type={isPassword && !passwordVisible ? "password" : type || 'text'}
+            placeholder={isPassword ? "비밀번호" : placeholder}
+            {...restProps}
+          />
+          { isPassword && (
+            passwordVisible ? (
+              <LucideEye className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
+                         onClick={()=>setPasswordVisible(false)}/>
+            ) : (
+              <LucideEyeOff className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5"
+                            onClick={()=>setPasswordVisible(true)}/>
+            )
+
           )}
-          {...props}
-        />
+        </div>
 
         {helperText && (
           <span className={`text-xs ${error ? 'text-red-500 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'}`}>

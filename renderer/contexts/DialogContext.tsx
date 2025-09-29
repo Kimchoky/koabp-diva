@@ -1,5 +1,5 @@
 import React, {createContext, ReactNode, useCallback, useContext, useState} from 'react'
-import Dialog from '../components/ui/BlurNotice'
+import Dialog, {CustomModal} from '../components/ui/BlurNotice'
 
 // TODO: light mode theming
 
@@ -32,6 +32,8 @@ interface DialogContextType {
   showConfirm: (title: string, message: string, onConfirm?: () => void, onCancel?: () => void) => void
   showError: (title: string, message: string, onConfirm?: () => void) => void
   showSuccess: (title: string, message: string, onConfirm?: () => void) => void
+  showComponent: (component: ReactNode) => void
+  hideComponent: () => void
 }
 
 const DialogContext = createContext<DialogContextType | undefined>(undefined)
@@ -42,6 +44,8 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     isOpen: false,
     options: {}
   })
+  const [componentState, setComponentState] = useState(false);
+  const [componentNode, setComponentNode] = useState<ReactNode>(null);
 
   const showDialog = useCallback((options: DialogOptions) => {
     setDialogState({
@@ -119,6 +123,15 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     })
   }, [showDialog])
 
+  const showComponent = useCallback((node: ReactNode) => {
+    setComponentNode(node)
+    setComponentState(true);
+  }, [])
+  const hideComponent = useCallback(() => {
+    setComponentNode(null)
+    setComponentState(false);
+  }, [])
+
   const contextValue: DialogContextType = {
     showDialog,
     hideDialog,
@@ -128,6 +141,8 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     showConfirm,
     showError,
     showSuccess,
+    showComponent,
+    hideComponent,
   }
 
   return (
@@ -140,6 +155,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
         onCancel={handleCancel}
         onClose={hideDialog}
       />
+      {componentState && <CustomModal>{componentNode}</CustomModal>}
     </DialogContext.Provider>
   )
 }

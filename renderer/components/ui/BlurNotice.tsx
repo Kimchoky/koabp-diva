@@ -10,21 +10,27 @@ interface DialogProps {
   onClose: () => void
 }
 
-export interface ModalComponentProps {
-  onClose: () => void
-  onConfirm?: (data?: any) => void
-  onCancel?: () => void
-}
-
-export interface CustomModalRef {
-  open: () => void
-  close: () => void
-  isOpen: boolean
-}
-
-interface CustomModalProps {
-  component: React.ComponentType<ModalComponentProps>
-}
+/**
+ * @description
+ * 화면 전체를 덮는 블러 처리된 배경 위에 커스텀 컴포넌트를 렌더링하기 위한 래퍼 컴포넌트.
+ * DialogContext와 함께 사용하도록 설계됨.
+ * `useDialog` 훅의 `showComponent` 함수에 렌더링할 컴포넌트를 넘겨주어 사용함.
+ *
+ * @example
+ * const { showComponent } = useDialog();
+ * showComponent(<MyCustomComponent />);
+ *
+ * // MyCustomComponent.tsx
+ * const MyCustomComponent = () => {
+ *   const { hideComponent } = useDialog();
+ *   return (
+ *     <div className="bg-white p-4 rounded">
+ *       <p>This is a custom component.</p>
+ *       <button onClick={hideComponent}>Close</button>
+ *     </div>
+ *   )
+ * }
+ */
 
 const getTypeStyles = (type: string) => {
   switch (type) {
@@ -130,42 +136,14 @@ export default function Dialog({ isOpen, options, onConfirm, onCancel, onClose }
   )
 }
 
-export const CustomModal = forwardRef<CustomModalRef, CustomModalProps>(
-  ({ component: Component }, ref) => {
-    const [isOpen, setIsOpen] = useState(false)
-
-    useImperativeHandle(ref, () => ({
-      open: () => setIsOpen(true),
-      close: () => setIsOpen(false),
-      isOpen
-    }))
-
-    const handleClose = () => {
-      setIsOpen(false)
-    }
-
-    const handleConfirm = (data?: any) => {
-      setIsOpen(false)
-    }
-
-    const handleCancel = () => {
-      setIsOpen(false)
-    }
-
-    if (!isOpen) return null
-
-    return (
-      <div className="fixed inset-0 z-50 backdrop-blur-sm flex justify-center items-center">
-        <div onClick={(e) => e.stopPropagation()}>
-          <Component
-            onClose={handleClose}
-            onConfirm={handleConfirm}
-            onCancel={handleCancel}
-          />
-        </div>
-      </div>
-    )
-  }
-)
-
-CustomModal.displayName = 'CustomModal'
+export const CustomModal = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <div
+      className="fixed inset-0 z-50 backdrop-blur-sm flex justify-center items-center"
+      // 배경 클릭 시 닫히는 기능을 넣고 싶다면 여기에 onClick 핸들러 추가 가능
+    >
+      {/* 컨텐츠 영역 클릭 시 이벤트 전파를 막아 모달이 닫히지 않게 함 */}
+      <div onClick={(e) => e.stopPropagation()}>{children}</div>
+    </div>
+  )
+}

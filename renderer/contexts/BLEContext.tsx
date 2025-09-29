@@ -53,7 +53,7 @@ interface BLEContextType {
   bleState: BLEState
   logs: string[]
   recentDevices: DeviceHistoryItem[]
-  startScan: (timeout?: number) => Promise<BleResultType>
+  startScan: (filterServices: string[], timeout?: number) => Promise<BleResultType>
   stopScan: () => Promise<BleResultType>
   connect: (deviceId: string) => Promise<BleResultType>
   connectToRecentDevice: (deviceId: string) => Promise<BleResultType>
@@ -97,9 +97,9 @@ export function BLEProvider({ children }: { children: ReactNode }) {
     setLogs(prev => [...prev, `[${timestamp}] ${message}`])
   }, [])
 
-  const startScan = useCallback(async (timeout?: number) => {
+  const startScan = useCallback(async (filterServices: string[] = [], timeout?: number) => {
     try {
-      const result = await window.ble.startScan(timeout)
+      const result = await window.ble.startScan(filterServices, timeout)
       if (!result.success) {
         addLog(`Scan failed: ${result.error}`)
       }

@@ -1,28 +1,28 @@
 import {HStack, VStack} from "./ui/Stack";
 import {useRouter} from "next/router";
 import {useSession} from "../contexts/SessionContext";
+import {useApi} from "../hooks/useApi";
+import {useEffect, useState} from "react";
+import SettingsMenu from "./SettingsMenu";
+import Divider from "./ui/Divider";
+import {getUsers, postLogin} from "../lib/queries";
+import {UserInfo} from "../types/api";
 
 
 export default function UserList() {
 
   const router = useRouter();
   const auth = useSession();
+  const api = useApi();
 
-  // TODO: Link API
-  const users = [
-    {
-      name: '신라면',
-      lastLogin: `11 시간 전`
-    },
-    {
-      name: '고등어 구이',
-      lastLogin: `12분 전`
-    },
-    {
-      name: '팔도 비빔면',
-      lastLogin: `🟢 접속 중`
-    }
-  ]
+  const [users, setUsers] = useState<UserInfo[]>([]);
+
+
+  const handleFetchUsers = async () => {
+    const users = await getUsers();
+    console.log(users);
+    setUsers(users);
+  }
 
 
   const handleLogin = (user) => {
@@ -30,33 +30,48 @@ export default function UserList() {
 
     auth.login(user)
 
-
-
     router.replace('/verifying');
   }
 
+  useEffect(() => {
+    handleFetchUsers()
+  }, []);
+
   return (
-    <VStack className={"w-60"} gap={10}>
+    <div>
+      <VStack className={"w-96 mb-20"} gap={2}>
 
-      <div className={"text-2xl"}>로그인:</div>
-      <VStack gap={5}>
+        <h1>로그인</h1>
+        <Divider/>
+        <VStack gap={5}>
 
-        {users.map((user) => (
-          <HStack
-            key={user.name}
-            appearance="outlined"
-            justifyContent={"space-between"}
-            gap={10}
-            className={"hover:border-primary hover:opacity-100 cursor-pointer"}
-            onClick={()=>handleLogin(user)}
-          >
-            <div>{user.name}</div>
-            <div>{user.lastLogin}</div>
-          </HStack>
-        ))}
+          {users.map((user) => (
+            <HStack
+              key={user.name}
+              appearance="outlined"
+              justifyContent={"space-between"}
+              gap={10}
+              className={"hover:border-primary hover:opacity-100 cursor-pointer"}
+              onClick={() => handleLogin(user)}
+            >
+              <div>{user.name}</div>
+              {user.lastLogin ?
+                <>
+                  <Divider vertical/>
+                  <div className={"flex flex-col"}>
+                    <div className={"text-gray-500 self-end"}>마지막 로그인</div>
+                    <div>{new Date(user.lastLogin).toLocaleString()}</div>
+                  </div>
+                </>
+                :
+                <div></div>
+              }
+            </HStack>
+          ))}
 
+        </VStack>
       </VStack>
-    </VStack>
+    </div>
   )
 
 

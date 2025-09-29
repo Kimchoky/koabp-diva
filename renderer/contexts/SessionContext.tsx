@@ -1,16 +1,20 @@
-import React, {createContext, ReactNode, useCallback, useContext, useState} from 'react'
+import React, {createContext, ReactNode, useCallback, useContext, useEffect, useState} from 'react'
+import {getMe, postLogin} from "../lib/queries";
+import {UserInfo} from "../types/api";
 
-export interface SessionInfoType {
-  name: string;
+type WorkType = 'imprint' | 'verify'
+
+export interface SessionType {
+  user: UserInfo;
   loginTime: Date;
-  workCount: number;
+  works: Record<WorkType, Record<DeviceType, number>>
 }
 
 export interface ImprintDeviceType {
   type: DeviceType;
   id: string;
   name: string;
-  timestamp: Date;
+  timestamp: number;
 }
 
 export interface UiStateType {
@@ -19,11 +23,11 @@ export interface UiStateType {
 }
 
 interface SessionContextType {
-  session: SessionInfoType | null;
-  login: (user: SessionInfoType) => void;
+  session: SessionType | null;
+  login: (id: string, password: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
-  increaseWorkCount: () => void;
+  increaseWorkCount: (workType: WorkType, deviceType: DeviceType) => void;
   uiState: UiStateType;
   setUiState: React.Dispatch<React.SetStateAction<UiStateType>>;
 }
@@ -31,32 +35,73 @@ interface SessionContextType {
 const SessionContext = createContext<SessionContextType | undefined>(undefined)
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<SessionInfoType | null>(null)
+  const [session, setSession] = useState<SessionType | null>(null)
   const [uiState, setUiState] = useState<UiStateType>({
     factoryMode: 'unknown',
     imprintDevice: null
   })
 
-  const login = useCallback((_session: SessionInfoType) => {
+  const login = useCallback(async (id: string, password: string) => {
+    const user = await postLogin(id, password)
+    const keepLoggedIn = localStorage.getItem('keepLoggedIn')
+    if (keepLoggedIn) {
+      localStorage.setItem('token', user?.token)
+    }
     setSession({
-      ..._session,
+      user,
       loginTime: new Date(),
-      workCount: 0,
+      works: {
+        imprint: {'KB-1': 0, 'CA-100': 0, 'TP-1': 0, 'CP-1': 0,},
+        verify: {'KB-1': 0, 'CA-100': 0, 'TP-1': 0, 'CP-1': 0,},
+      },
     })
   }, [])
 
   const logout = useCallback(() => {
+    localStorage.removeItem('token')
     setSession(null);
   }, [])
 
   const isAuthenticated = session !== null
 
-  const increaseWorkCount = () => {
+  const increaseWorkCount = (workType: WorkType, deviceType: DeviceType) => {
     setSession(prev => ({
       ...prev,
-      workCount: prev.workCount + 1,
+      works: {
+        imprint: {
+          ...prev.works.imprint,
+          [deviceType]: prev.works.imprint[deviceType] + (workType === 'imprint' ? 1 : 0),
+        },
+        verify: {
+          ...prev.works.verify,
+          [deviceType]: prev.works.verify[deviceType] + (workType === 'verify' ? 1 : 0),
+        }
+      }
     }))
   }
+
+  useEffect(() => {
+    const tryLoginWithToken = async () => {
+      const keepLoggedIn = localStorage.getItem('keepLoggedIn')
+      const token = localStorage.getItem('token')
+      if (keepLoggedIn && token) {
+        console.log('trying auto log in')
+        const user = await getMe()
+        if (user) {
+          setSession({
+            user,
+            loginTime: new Date(),
+            works: {
+              imprint: {'KB-1': 0, 'CA-100': 0, 'TP-1': 0, 'CP-1': 0,},
+              verify: {'KB-1': 0, 'CA-100': 0, 'TP-1': 0, 'CP-1': 0,},
+            }
+          })
+        }
+      }
+    }
+
+    tryLoginWithToken();
+  }, []);
 
   const value: SessionContextType = {
     session,

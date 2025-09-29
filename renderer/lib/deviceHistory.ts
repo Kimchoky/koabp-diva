@@ -47,35 +47,50 @@ export class DeviceHistoryManager {
    */
   addOrUpdateDevice(deviceId: string, deviceName: string, rssi?: number, advertisement?: any): void {
     try {
+      // 기존 로직 (여러 기기 저장)
+      // const devices = this.getRecentDevices();
+      // const existingIndex = devices.findIndex(device => device.id === deviceId);
+      //
+      // if (existingIndex >= 0) {
+      //   // 기존 기기 업데이트
+      //   devices[existingIndex] = {
+      //     ...devices[existingIndex],
+      //     name: deviceName, // 이름이 변경될 수 있으므로 업데이트
+      //     lastConnected: new Date(),
+      //     connectionCount: devices[existingIndex].connectionCount + 1,
+      //     rssi,
+      //     advertisement
+      //   };
+      // } else {
+      //   // 새 기기 추가
+      //   devices.unshift({
+      //     id: deviceId,
+      //     name: deviceName,
+      //     lastConnected: new Date(),
+      //     connectionCount: 1,
+      //     rssi,
+      //     advertisement
+      //   });
+      // }
+      //
+      // // 최대 개수 제한
+      // const trimmedDevices = devices.slice(0, MAX_HISTORY_SIZE);
+
+      // 신규 로직: 마지막 하나만 저장
       const devices = this.getRecentDevices();
-      const existingIndex = devices.findIndex(device => device.id === deviceId);
+      const existingDevice = devices.find(device => device.id === deviceId);
 
-      if (existingIndex >= 0) {
-        // 기존 기기 업데이트
-        devices[existingIndex] = {
-          ...devices[existingIndex],
-          name: deviceName, // 이름이 변경될 수 있으므로 업데이트
-          lastConnected: new Date(),
-          connectionCount: devices[existingIndex].connectionCount + 1,
-          rssi,
-          advertisement
-        };
-      } else {
-        // 새 기기 추가
-        devices.unshift({
-          id: deviceId,
-          name: deviceName,
-          lastConnected: new Date(),
-          connectionCount: 1,
-          rssi,
-          advertisement
-        });
-      }
+      const newDevice: DeviceHistoryItem = {
+        id: deviceId,
+        name: deviceName,
+        lastConnected: new Date(),
+        connectionCount: existingDevice ? existingDevice.connectionCount + 1 : 1,
+        rssi,
+        advertisement
+      };
 
-      // 최대 개수 제한
-      const trimmedDevices = devices.slice(0, MAX_HISTORY_SIZE);
-
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmedDevices));
+      // 마지막 연결 기기 하나만 저장
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([newDevice]));
     } catch (error) {
       console.error('Failed to save device history:', error);
     }

@@ -2,7 +2,7 @@ import { ipcMain } from 'electron'
 import axios, { Method } from 'axios'
 
 // 실제 백엔드 서버의 주소
-const API_BASE_URL = 'https://your-real-backend.com/api' // <-- 실제 백엔드 서버 주소로 변경하세요.
+const API_BASE_URL = 'http://localhost:5001/api' // <-- 실제 백엔드 서버 주소로 변경하세요.
 
 /**
  * API 관련 IPC 핸들러를 등록함
@@ -12,8 +12,8 @@ const API_BASE_URL = 'https://your-real-backend.com/api' // <-- 실제 백엔드
 export function registerApiHandlers() {
   ipcMain.handle(
     'http-request',
-    async (event, args: { method: Method; path: string; data?: any; params?: any }) => {
-      const { method, path, data, params } = args
+    async (event, args: { method: Method; path: string; data?: any; params?: any; headers?: Record<string, string> }) => {
+      const { method, path, data, params, headers } = args
       const url = `${API_BASE_URL}/${path}`
 
       try {
@@ -25,6 +25,7 @@ export function registerApiHandlers() {
           headers: {
             // 필요하다면 여기에 인증 토큰 등을 추가할 수 있습니다.
             // 'Authorization': `Bearer ${some_token}`
+            ...headers, // renderer에서 전달된 커스텀 헤더 병합
           },
         })
         return {
