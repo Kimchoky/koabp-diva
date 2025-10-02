@@ -66,10 +66,31 @@ const getTypeStyles = (type: string) => {
 }
 
 export default function Dialog({ isOpen, options, onConfirm, onCancel, onClose }: DialogProps) {
-  if (!isOpen) return null
-
   const typeStyles = getTypeStyles(options.type || 'info')
   const IconComponent = typeStyles.icon
+
+  // 키보드 이벤트 핸들러
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (options.showCancel) {
+          onCancel()
+        } else {
+          onClose()
+        }
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        onConfirm()
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown)
+      return () => document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isOpen, options.showCancel, onCancel, onClose, onConfirm])
+
+  if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 z-50 backdrop-blur-sm flex justify-center items-center">

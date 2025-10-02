@@ -96,3 +96,8 @@ export const getMe = async (): Promise<UserInfo> => {
 export const getNextDeviceSerial = async (deviceType: DeviceType): Promise<{ nextDeviceSerial: string }> => {
   return apiClient.get<{nextDeviceSerial: string}>(`device-serial/next/${deviceType}`)
 }
+
+export const postVerificationValues = async (deviceId: string, verificationValues: VerificationValuesType): Promise<void> => {
+  console.log('posting', deviceId, verificationValues);
+  return apiClient.post<void>(`verification/${deviceId}`, { verificationValues });
+}

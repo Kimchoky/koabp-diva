@@ -8,6 +8,9 @@ import Divider from "./ui/Divider";
 import {getUsers, postLogin} from "../lib/queries";
 import {UserInfo} from "../types/api";
 
+/**
+ * 안씀...
+ */
 
 export default function UserList() {
 
@@ -20,7 +23,6 @@ export default function UserList() {
 
   const handleFetchUsers = async () => {
     const users = await getUsers();
-    console.log(users);
     setUsers(users);
   }
 
@@ -28,7 +30,7 @@ export default function UserList() {
   const handleLogin = (user) => {
     // TODO: auth context
 
-    auth.login(user)
+    auth.login(user, user)
 
     router.replace('/verifying');
   }

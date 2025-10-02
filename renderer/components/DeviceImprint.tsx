@@ -8,10 +8,11 @@ import {useDialog} from "../contexts/DialogContext";
 import {useApi} from "../hooks/useApi";
 import {getDevices, getNextDeviceSerial, postDevice} from "../lib/queries";
 import Tooltip from "./ui/Tooltip";
-import {LucideInfo} from "lucide-react";
+import {ChevronDown, ChevronLeft, ChevronRight, ChevronUp, LucideInfo} from "lucide-react";
 import AwaitIndicator from "./AwaitIndicator";
 import {useSession} from "../contexts/SessionContext";
 import CheckBox from "./ui/CheckBox";
+import Tag from "./ui/Tag";
 
 interface DeviceImprintType {
   deviceType: DeviceType;
@@ -34,10 +35,11 @@ export default function DeviceImprint() {
   const api = useApi();
   const {uiState, setUiState} = useSession();
 
-  const [lastImprintedSerials, setLastImprintedSerials] = useState<Record<DeviceType, string|null>>({ 'KB-1': null, 'CA-100': null, 'CP-1': null, 'TP-1': null});
+  const [lastImprintedSerials, setLastImprintedSerials] = useState<Record<DeviceType, string|null>>({ 'KB-1': null, 'CA-100': null, 'TP-1': null, 'CP-1': null});
   const [deviceSerial, _setDeviceSerial] = useState<string>('');  // setter는 래핑함수로 대체하고, 직접호출은 피한다.
   const [deviceType, setDeviceType] = useState<DeviceType>("KB-1");
   const [autoReconnect, setAutoReconnect] = useState(true);
+  const [expanded, setExpanded] = useState<boolean>(false);
 
   // serial setter wrapper
   const setDeviceSerial = (deviceSerial: string) => {
@@ -278,7 +280,7 @@ export default function DeviceImprint() {
 
   return (
     <div
-      key="deviceConnected" className={`animate-fade-in`}
+      key="deviceConnected" className={`animate-fade-in relative`}
     >
       <VStack gap={8}>
         <HStack justifyContent={'space-between'} alignItems={"flex-end"}>
@@ -366,12 +368,24 @@ export default function DeviceImprint() {
                   maxLength={6}
                   disabled={!bleState.connectedDevice || !bleState.communicationHealthy}
                 />
-                <div>
+                <HStack>
                   <Tooltip delay={0} content={<div className={"pt-2"}>Serial 감소</div>}>
-                    <Button appearance={"outlined"} onClick={decreaseCurrentSerial} icon="ChevronLeft" className={"ml-1"} size={"xs"} disabled={!bleState.connectedDevice || !bleState.communicationHealthy}/>
+                    <Button
+                      appearance={"outlined"}
+                      onClick={decreaseCurrentSerial} icon="MinusIcon"
+                      className={"ml-1"}
+                      size={"xs"}
+                      disabled={!bleState.connectedDevice || !bleState.communicationHealthy || !deviceSerial}/>
+                    {/*<MinusIcon onClick={decreaseCurrentSerial} className={"ml-1"} size={13} disabled={!bleState.connectedDevice || !bleState.communicationHealthy}/>*/}
                   </Tooltip>
                   <Tooltip delay={0} content={<div className={"pt-2"}>Serial 증가</div>}>
-                    <Button appearance={"outlined"} onClick={increaseCurrentSerial} icon="ChevronRight" className={"ml-1"} size={"xs"} disabled={!bleState.connectedDevice || !bleState.communicationHealthy}/>
+                    <Button
+                      appearance={"outlined"}
+                      onClick={increaseCurrentSerial}
+                      icon="PlusIcon" className={"ml-1"}
+                      size={"xs"}
+                      disabled={!bleState.connectedDevice || !bleState.communicationHealthy || !deviceSerial}/>
+                    {/*<PlusIcon onClick={increaseCurrentSerial}  className={"ml-1"} size={13} disabled={!bleState.connectedDevice || !bleState.communicationHealthy}/>*/}
                   </Tooltip>
                   <Tooltip delay={0} content={
                     <div className={"pt-2"}>
@@ -381,7 +395,7 @@ export default function DeviceImprint() {
                   }>
                     <Button appearance={"outlined"} mode={"warning"} onClick={handleGetNextSerial} icon="ChevronsDown" className={"ml-1"} size={"xs"} disabled={!bleState.connectedDevice || !bleState.communicationHealthy}/>
                   </Tooltip>
-                </div>
+                </HStack>
               </div>
 
             </HStack>
@@ -398,13 +412,25 @@ export default function DeviceImprint() {
           </HStack>
 
         </VStack>
-        <div>
-          { Object.keys(lastImprintedSerials).map((key, index) => (
-            <span key={key}>{key}: {lastImprintedSerials[key]}</span>
-          ))}
-        </div>
-
       </VStack>
+
+      <HStack className={"mt-2"}>
+        { expanded ? (
+            <ChevronLeft onClick={() => setExpanded(false)}/>
+        ) : (
+          <ChevronRight onClick={() => setExpanded(true)}/>
+        )}
+        <HStack gap={2} className={`text-xs ml-4 ${expanded ? 'opacity-100' : 'opacity-0'}`}>
+          <span>마지막 주입: </span>
+          { Object.keys(lastImprintedSerials).map((key, index) => (
+            <HStack gap={2}>
+              {index > 0 && <Divider vertical/>}
+              <span key={key}><Tag size={"sm"} className={"px-1 bg-gray-500"}>{key}</Tag> {lastImprintedSerials[key] ?? 'N/A'}</span>
+            </HStack>
+          ))}
+        </HStack>
+      </HStack>
+
     </div>
   )
 }

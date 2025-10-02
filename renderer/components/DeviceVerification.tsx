@@ -8,28 +8,22 @@ import {LucideInfo} from "lucide-react";
 import Tooltip from "./ui/Tooltip";
 import {useDialog} from "../contexts/DialogContext";
 import {useSession} from "../contexts/SessionContext";
+import {postVerificationValues} from "../lib/queries";
 
-const nonImprintedNames = ['KOABP-KB1-', 'KOABP-TP1-', 'KOABP-CP1-'];
+const nonImprintedNames = ['KOABP-KB1-', 'KOABP-CA1-', 'KOABP-TP1-', 'KOABP-CP1-'];
 
-type VerificationKeyType = 'vrf-pns' | 'vrf-mic' | 'vrf-chrg' | 'vrf-cuff' | 'vrf-orm'
-type VerificationValueType = true | false | null;
-interface VerificationItem {
-  name: string;
-  key: VerificationKeyType;
-  action?: () => void;
-}
 export default function DeviceVerification({ enabled }: { enabled?: boolean }) {
 
   const {uiState} = useSession();
   const {bleState, commandSender} = useBLE();
   const dialog = useDialog();
 
-  const [verificationValues, setVerificationValues] = useState<Record<VerificationKeyType, VerificationValueType>>({
-    'vrf-pns': null,
-    'vrf-mic': null,
-    'vrf-chrg': null,
-    'vrf-cuff': null,
-    'vrf-orm': null,
+  const [verificationValues, setVerificationValues] = useState<VerificationValuesType>({
+    'vrf-pns': { pass: null, description: '' },
+    'vrf-mic': { pass: null, description: '' },
+    'vrf-chrg': { pass: null, description: '' },
+    'vrf-cuff': { pass: null, description: '' },
+    'vrf-orm': { pass: null, description: '' },
   });
 
   // 기기이름(KOABP-KB-...)이 기록되었는지. 최우선으로 적용해야 하는 작업
@@ -43,7 +37,7 @@ export default function DeviceVerification({ enabled }: { enabled?: boolean }) {
   }, [bleState.connectedDevice, bleState.communicationHealthy, deviceNameImprinted]);
 
   const verificationItems: VerificationItem[] = [
-    { name: 'Pump & Solenoid', key: 'vrf-pns', action: commandSender.sendVerifyPumpSolenoid},
+    { name: 'Pump & Solenoid', key: 'vrf-pns', action: commandSender.sendVerifyPumpSolenoid },
     { name: 'MIC', key: 'vrf-mic', action: commandSender.sendVerifyMic },
     { name: 'Charger', key: 'vrf-chrg', action: commandSender.sendVerifyBattCharger },
     { name: '커프 누기 시험', key: 'vrf-cuff' },
@@ -64,16 +58,26 @@ export default function DeviceVerification({ enabled }: { enabled?: boolean }) {
     commandSender.sendBpStop();
   }
 
-  const handlePassFail = (key: VerificationKeyType, val: string|number|boolean) => {
-    setVerificationValues(prev => {
-      const newValues = { ...prev }
-      newValues[key] = typeof val === 'boolean' ? val : (val === 'true')
-      return newValues
-    })
+  const handleChangeVerificationValues = (key: VerificationKeyType, item: keyof VerificationResultType, value: any ) => {
+    console.log(`Changed ${key} > ${item} >>`, value);
+    setVerificationValues(prev => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        [item]: value
+      }
+    }));
   }
 
-  const handleSaveResults = () => {
-    dialog.showError("Error!", "Not Implemented yet.")
+  const handleSaveVerificationValues = () => {
+    postVerificationValues(bleState.connectedDevice.id, verificationValues)
+      .then(res => {
+        console.log(res);
+        dialog.showSuccess('저장 성공', '검사 결과를 성공적으로 저장하였습니다.');
+      })
+      .catch(() => {
+        dialog.showError('저장 실패', '데이터를 저장하지 못하였습니다.');
+      })
   }
 
   return (
@@ -142,21 +146,21 @@ export default function DeviceVerification({ enabled }: { enabled?: boolean }) {
                 <td className="border border-gray-300 dark:border-gray-600">
                   <div className={"flex justify-center"}>
                   <RoundedRadio.Group
-                    value={verificationValues[item.key]}
-                    onChange={(v) => handlePassFail(item.key, v)}
+                    value={verificationValues[item.key]?.pass}
+                    onChange={(v) => handleChangeVerificationValues(item.key, 'pass', v)}
                     name={item.key}
                     className={"w-40 self-center"}
                   >
                     <RoundedRadio.Item
                       value={true}
-                      className={verificationValues[item.key] === true ? 'bg-green-500 dark:bg-green-500 disabled:bg-green-700 disabled:dark:bg-green-500/25' : ''}
+                      className={verificationValues[item.key]?.pass === true ? 'bg-green-500 dark:bg-green-500 disabled:bg-green-700 disabled:dark:bg-green-500/25' : ''}
                       disabled={isDisabled}
                     >
                       Pass
                     </RoundedRadio.Item>
                     <RoundedRadio.Item
                       value={false}
-                      className={verificationValues[item.key] === false ? 'bg-red-500 disabled:bg-red-500/25' : ''}
+                      className={verificationValues[item.key]?.pass === false ? 'bg-red-500 disabled:bg-red-500/25' : ''}
                       disabled={isDisabled}
                     >
                       Fail
@@ -170,6 +174,7 @@ export default function DeviceVerification({ enabled }: { enabled?: boolean }) {
                     className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:border-blue-500 bg-transparent disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed"
                     placeholder="특이사항 입력..."
                     disabled={isDisabled}
+                    onChange={e => handleChangeVerificationValues(item.key, 'description', e.target.value)}
                   />
                 </td>
               </tr>
@@ -182,7 +187,7 @@ export default function DeviceVerification({ enabled }: { enabled?: boolean }) {
           size={"md"}
           disabled={isDisabled}
           className={"self-end min-w-12 w-1/3"}
-          onClick={handleSaveResults}
+          onClick={handleSaveVerificationValues}
         >
           결과 저장
         </Button>

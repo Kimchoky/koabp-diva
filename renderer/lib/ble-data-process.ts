@@ -103,7 +103,6 @@ export class BLEDataProcessor {
   };
 
   processDeviceDataParsed = ({ characteristicUuid, parsedData }: { characteristicUuid: string, parsedData: ParsedData }) => {
-    console.log('processDeviceDataParsed', parsedData);
     if (parsedData.type === 'batteryInfo') {
       this.onBatteryDataReceived(parsedData);
     }

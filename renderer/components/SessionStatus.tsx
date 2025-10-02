@@ -70,8 +70,8 @@ export default function SessionStatus() {
           <tbody>
             {workTypes.map(workType => (
               <tr key={workType}>
-                <td className={`border border-border-light dark:border-border-dark p-2 font-bold`}>
-                  {workType === 'imprint' && 'Name 주입'}
+                <td className={`border border-border-light dark:border-border-dark p-2 font-bold text-center`}>
+                  {workType === 'imprint' && '이름 주입'}
                   {workType === 'verify' && '기기 검사'}
                 </td>
                 {deviceTypes.map(deviceType => (

@@ -8,6 +8,7 @@ import Divider from "./ui/Divider";
 import ActivityIndicator from "./ui/ActivityIndicator";
 import {useAudit} from "../contexts/AuditContext";
 import {ActionResult, UserActionType} from "../types/audit";
+import Tag from "./ui/Tag";
 
 export default function DeviceScanner() {
 
@@ -218,6 +219,7 @@ export default function DeviceScanner() {
 
 
       {/* 최근 연결한 기기 목록 */}
+      {/*
       {recentDevices.length > 0 && (
         <VStack gap={2}>
           <HStack gap={4} justifyContent={"space-between"} alignItems={"flex-end"}>
@@ -251,11 +253,7 @@ export default function DeviceScanner() {
                           </div>
                         </VStack>
 
-                        <VStack justifyContent={"flex-end"} className={'self-stretch'}>
-                          { !isConnectedDevice && (
-                            <X className="self-end cursor-pointer text-error"
-                               onClick={() => removeDeviceFromHistory(device.id)}/>
-                          )}
+                        <VStack justifyContent={"center"} className={'self-stretch'}>
                           <Button
                           onClick={() => handleConnectToRecent(device.id)}
                           size="sm"
@@ -266,7 +264,7 @@ export default function DeviceScanner() {
                             ? '연결됨'
                             : isConnecting
                               ? '연결중..'
-                              : '바로 연결'
+                              : '연결'
                           }
                         </Button>
                         </VStack>
@@ -281,6 +279,7 @@ export default function DeviceScanner() {
       { recentDevices.length > 0 && (
         <Divider />
       )}
+      */}
 
       <VStack gap={2}>
 
@@ -325,30 +324,35 @@ export default function DeviceScanner() {
                   return (
                     <li
                       key={device.id}
-                      className={`p-3 flex items-center justify-between hover:bg-gray-400/30
+                      className={`p-3 flex flex-col justify-between hover:bg-gray-400/30
                                   ${isConnectedDevice && 'border-l-8 border-l-primary'}`}
                     >
-                      <div>
-                        <div className="font-medium">{device.name}</div>
-                        <HStack className="text-sm text-gray-500" gap={1}>
-                          <span>RSSI:</span>
-                          <span className={getRssiColor(device.rssi)}>{device.rssi}</span>
-                          <span>dBm</span>
-                        </HStack>
-                      </div>
-                      <Button
-                        onClick={() => handleConnect(device.id)}
-                        size="sm"
-                        icon="Bluetooth"
-                        disabled={isConnectedDevice || isConnecting}
-                      >
-                        { isConnectedDevice
-                          ? '연결됨'
-                          : isConnecting
-                            ? '연결중..'
-                            : '연결'
-                        }
-                      </Button>
+                      <HStack justifyContent={"space-between"} className={""}>
+                        <div>
+                          <div className="font-medium">{device.name}</div>
+                          <HStack className="text-sm text-gray-500" gap={1}>
+                            <span>RSSI:</span>
+                            <span className={getRssiColor(device.rssi)}>{device.rssi}</span>
+                            <span>dBm</span>
+                          </HStack>
+                        </div>
+                        <Button
+                          onClick={() => handleConnect(device.id)}
+                          size="sm"
+                          icon="Bluetooth"
+                          disabled={isConnectedDevice || isConnecting}
+                        >
+                          { isConnectedDevice
+                            ? '연결됨'
+                            : isConnecting
+                              ? '연결중..'
+                              : '연결'
+                          }
+                        </Button>
+                      </HStack>
+                      {recentDevices.find(d => d.id === device.id) && (
+                        <Tag className={"w-fit mt-2"} size={"sm"}>마지막으로 연결한 기기</Tag>
+                      )}
                     </li>
                   )}
                 )}
@@ -362,11 +366,13 @@ export default function DeviceScanner() {
           )}
 
         </VStack>
-         <HStack gap={2} className="">
-            TEST:
-            <Button onClick={()=>{bleState.connectedDevice = { id: 'tet', name: 'KOABP-TPx1-',  rssi: -10, advertisement: 'hooo', batteryLevel: (new Date().getTime()%80+15)}; disconnect()}}>con</Button>
-            <Button onClick={()=>{bleState.connectedDevice = null; disconnect()}}>discon</Button>
-          </HStack>
+        {/*
+        <HStack gap={2} className="">
+          TEST:
+          <Button onClick={()=>{bleState.connectedDevice = { id: 'tet', name: 'KOABP-TPx1-',  rssi: -10, advertisement: 'hooo', batteryLevel: (new Date().getTime()%80+15)}; disconnect()}}>con</Button>
+          <Button onClick={()=>{bleState.connectedDevice = null; disconnect()}}>discon</Button>
+        </HStack>
+        */}
       </VStack>
     </VStack>
   )
