@@ -2,7 +2,6 @@ import DeviceScanner from "../components/DeviceScanner";
 import React from "react";
 import {HStack, VStack} from "../components/ui/Stack";
 import {useSession} from "../contexts/SessionContext";
-import Header from "../components/Header";
 import {useBLE} from "../contexts/BLEContext";
 import DeviceConnected from "../components/DeviceConnected";
 import LogWindow from "../components/ui/LogWindow";
@@ -18,13 +17,7 @@ export default function VerifyingPage() {
   const {bleState, commandSender} = useBLE();
 
   return (
-    <VStack gap={4} className="animate-fade-in">
-
-      {/* Header */}
-
-      <Header />
-
-
+    <>
       {/* Content */}
       <HStack gap={3} alignItems={"flex-start"}>
 
@@ -66,7 +59,7 @@ export default function VerifyingPage() {
 
       <LogWindow />
 
-    </VStack>
+    </>
   )
 
 }

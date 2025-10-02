@@ -11,6 +11,8 @@ import VerifyingPage from './verifying';
 import ApiKeySetup from '../components/ApiKeySetup';
 import {validateApiKey} from "../lib/queries";
 import {ThemeProvider} from "../components/ThemeContext";
+import Header from '../components/Header';
+import {VStack} from '../components/ui/Stack';
 
 // 로그인 상태에 따른 라우팅 컴포넌트
 function AuthenticatedApp({Component, pageProps, router}: AppProps) {
@@ -28,10 +30,12 @@ function AuthenticatedApp({Component, pageProps, router}: AppProps) {
   // 로그인 여부에 따라 페이지 결정
   if (session?.user?._id) {
     // 로그인된 경우 - verifying 페이지 또는 요청된 컴포넌트
-    if (router.pathname === '/home' || router.pathname === '/') {
-      return <VerifyingPage />;
-    }
-    return <Component {...pageProps} />;
+    return (
+      <VStack gap={4} className="animate-fade-in">
+        <Header />
+        <Component {...pageProps} />
+      </VStack>
+    );
   } else {
     // 로그인되지 않은 경우 - login 페이지
     return <LoginPage />;

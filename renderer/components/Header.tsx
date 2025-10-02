@@ -3,9 +3,10 @@ import {HStack, VStack} from "./ui/Stack";
 import {useSession, SessionType} from "../contexts/SessionContext";
 import Divider from "./ui/Divider";
 import Button from "./ui/Button";
-import {LucideBluetoothOff, LucideBluetoothSearching, X} from "lucide-react";
+import {LucideBluetoothOff, LucideBluetoothSearching, ShieldCheckIcon, TabletSmartphoneIcon, X} from "lucide-react";
 import {useBLE} from "../contexts/BLEContext";
 import Tooltip from "./ui/Tooltip";
+import Link from "next/link";
 
 
 const UserMenu = ({setShowUserMenu}: { setShowUserMenu: (_: boolean) => void }) => {
@@ -130,29 +131,58 @@ export default function Header() {
 
   return (
     <HStack justifyContent="space-between" alignItems="center">
+
+      {/*  */}
       <HStack gap={2} className="flex items-baseline">
         <span className="text-2xl text-primary">KoaBP DIVA</span>
         <span className="text-sm">{"1.0.0"}</span>
 
-      </HStack>
-
-
-      <HStack className="relative" gap={6}>
-
         <Tooltip
-          content={bleState.state === 'poweredOn' ? 'Bluetooth 연결됨' : 'Bluetooth 연결 끊어짐'}
-          position="bottom"
+          content={bleState.state === 'poweredOn' ? 'PC Bluetooth ON' : 'PC Bluetooth OFF'}
+          position="left"
           delay={0}
         >
           <div >
             {bleState.state === 'poweredOn' && (
-             <LucideBluetoothSearching className="text-green-600 dark:text-green-400"/>
+             <LucideBluetoothSearching className="text-green-600 dark:text-green-400" size={18}/>
             )}
             {bleState.state === 'poweredOff' && (
-              <LucideBluetoothOff className={"text-red-600 dark:text-red-400 animate-emergency"}/>
+              <LucideBluetoothOff className={"text-red-600 dark:text-red-400 animate-emergency"} size={18}/>
             )}
           </div>
+          {/* TODO : PC 블루투스 OFF 일 때 검증작업 못하게 막아야 함 */}
         </Tooltip>
+
+      </HStack>
+
+      {/* 메뉴 */}
+      <HStack gap={2}>
+        <HStack gap={2} className={"hover:text-primary"}>
+          <ShieldCheckIcon size={20} />
+          <Link href={"/verifying"}>기기 검증</Link>
+        </HStack>
+
+        <Divider vertical/>
+
+        <HStack gap={2} className={"hover:text-primary"}>
+          <TabletSmartphoneIcon size={20} />
+          <Link href={"/devices"}>기기 조회</Link>
+        </HStack>
+
+        <Divider vertical/>
+
+        <HStack gap={2} className={"hover:text-primary"}>
+          <TabletSmartphoneIcon size={20} />
+          <Link href={"/devices"}>작업 이력</Link>
+        </HStack>
+      </HStack>
+
+
+      {/* 로그인 정보 */}
+      <HStack className="relative" gap={6}>
+
+        {/* TODO: verify 아닌 경우 연결정보를 간략히 보여줌 */}
+
 
         <Button
           size="sm"
